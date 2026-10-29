@@ -97,7 +97,7 @@ void idImage::SubImageUpload( int mipLevel, int x, int y, int z, int width, int 
 	GL_CheckErrors();
 #endif
 	if ( IsCompressed() ) {
-		qglCompressedTexSubImage2DARB( uploadTarget, mipLevel, x, y, width, height, internalFormat, compressedSize, pic );
+		glCompressedTexSubImage2D( uploadTarget, mipLevel, x, y, width, height, internalFormat, compressedSize, pic );
 	} else {
 
 		// make sure the pixel store alignment is correct so that lower mips get created
@@ -424,10 +424,12 @@ void idImage::AllocImage() {
 				// As of 2011-10-6 using NVIDIA hardware and drivers we have to allocate the memory with HeapAlloc
 				// with the exact size otherwise large image allocation (for instance for physical page textures)
 				// may fail on Vista 32-bit.
-				void * data = HeapAlloc( GetProcessHeap(), 0, compressedSize );
-				qglCompressedTexImage2DARB( uploadTarget+side, level, internalFormat, w, h, 0, compressedSize, data );
+				void * data = SDL_malloc( compressedSize );
+				// the ARB suffixed entry point is not exported by a core profile context, texture
+				// compression is core GL since 3.2 so the unsuffixed function is the one to use
+				glCompressedTexImage2D( uploadTarget+side, level, internalFormat, w, h, 0, compressedSize, data );
 				if ( data != NULL ) {
-					HeapFree( GetProcessHeap(), 0, data );
+					SDL_free( data );
 				}
 			} else {
 				qglTexImage2D( uploadTarget + side, level, internalFormat, w, h, 0, dataFormat, dataType, NULL );

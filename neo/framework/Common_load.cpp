@@ -527,6 +527,7 @@ void idCommonLocal::ExecuteMapChange() {
 	// load and spawn all other entities ( from a savegame possibly )
 	if ( mapSpawnData.savegameFile ) {
 		if ( !game->InitFromSaveGame( fullMapName, renderWorld, soundWorld, mapSpawnData.savegameFile, mapSpawnData.stringTableFile, mapSpawnData.savegameVersion ) ) {
+			common->Warning( "InitFromSaveGame failed for '%s', returning to title", fullMapName.c_str() );
 			// If the loadgame failed, end the session, which will force us to go back to the main menu
 			session->QuitMatchToTitle();
 		}

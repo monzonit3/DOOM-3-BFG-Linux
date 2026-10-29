@@ -1361,6 +1361,17 @@ void GLimp_SwapBuffers() {
 }
 
 /*
+=====================
+GLimp_ResolveFramebuffer
+
+The WGL backend renders directly to the (possibly multisampled) default
+framebuffer, so there is no offscreen render target to resolve here.
+=====================
+*/
+void GLimp_ResolveFramebuffer( bool resolveDepth ) {
+}
+
+/*
 ===========================================================
 
 SMP acceleration

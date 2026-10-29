@@ -155,7 +155,8 @@ void idCommonLocal::VPrintf( const char *fmt, va_list args ) {
 	}
 #endif
 	if ( !idLib::IsMainThread() ) {
-		OutputDebugString( msg );
+		// can't touch the console from a job thread, so just log it
+		SDL_Log( "%s", msg );
 		return;
 	}
 
@@ -397,7 +398,13 @@ void idCommonLocal::DumpWarnings() {
 #ifndef ID_DEBUG
 		idStr	osPath;
 		osPath = fileSystem->RelativePathToOSPath( "warnings.txt", "fs_savepath" );
+#ifdef _WIN32
 		WinExec( va( "Notepad.exe %s", osPath.c_str() ), SW_SHOW );
+#else
+		// let the desktop's default application for text files open the warnings file
+		osPath.Replace( "\\", "/" );
+		SDL_OpenURL( va( "file://%s", osPath.c_str() ) );
+#endif
 #endif
 	}
 }

@@ -491,9 +491,9 @@ const char *	Sys_GetCallStackCurAddressStr( int depth );
 void			Sys_ShutdownSymbols();
 
 // DLL loading, the path should be a fully qualified OS path to the DLL file to be loaded
-int				Sys_DLL_Load( const char *dllName );
-void *			Sys_DLL_GetProcAddress( int dllHandle, const char *procName );
-void			Sys_DLL_Unload( int dllHandle );
+intptr_t		Sys_DLL_Load( const char *dllName );
+void *			Sys_DLL_GetProcAddress( intptr_t dllHandle, const char *procName );
+void			Sys_DLL_Unload( intptr_t dllHandle );
 
 // event generation
 void			Sys_GenerateEvents();
@@ -529,12 +529,18 @@ void			Sys_ShowWindow( bool show );
 bool			Sys_IsWindowVisible();
 void			Sys_ShowConsole( int visLevel, bool quitOnClose );
 
-// This really isn't the right place to have this, but since this is the 'top level' include
-// and has a function signature with 'FILE' in it, it kinda needs to be here =/
-typedef HANDLE idFileHandle;
+// Returns the current keyboard layout's name for an engine key number (see
+// keyNum_t), or NULL if SDL doesn't know that key.
+const char *	Sys_GetKeyName( int keyNum );
+
+#include <SDL3/SDL.h>
+
+// All file access goes through SDL's IO abstraction, so the engine only ever
+// deals with SDL_IOStream handles no matter which platform it runs on.
+typedef SDL_IOStream * idFileHandle;
 
 
-ID_TIME_T		Sys_FileTimeStamp( idFileHandle fp );
+ID_TIME_T		Sys_FileTimeStamp( const char * path );
 // NOTE: do we need to guarantee the same output on all platforms?
 const char *	Sys_TimeStampToStr( ID_TIME_T timeStamp );
 const char *	Sys_SecToStr( int sec );

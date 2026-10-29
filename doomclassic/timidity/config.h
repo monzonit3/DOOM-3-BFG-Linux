@@ -197,10 +197,10 @@ const float PI =  3.14159265358979323846f;
 #endif
 
 /* The path separator (D.M.) */
-//#ifdef __WIN32__
+#ifdef _WIN32
 #  define PATH_SEP '\\'
 #  define PATH_STRING "\\"
-//#else
-//#  define PATH_SEP '/'
-//#  define PATH_STRING "/"
-//#endif
+#else
+#  define PATH_SEP '/'
+#  define PATH_STRING "/"
+#endif

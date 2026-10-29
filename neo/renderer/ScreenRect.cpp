@@ -60,6 +60,22 @@ void idScreenRect::AddPoint( float x, float y ) {
 	int	ix = idMath::Ftoi( x );
 	int iy = idMath::Ftoi( y );
 
+	// The coordinates are stored in shorts. A point projected outside the window - a
+	// translucent surface that leaves the viewport, for instance - can easily exceed
+	// that range, and narrowing it wraps around into a rect that still looks valid but
+	// covers the wrong part of the screen. That rect then becomes a scissor rect and
+	// clips the surface into the wrong region. Saturate instead of wrapping.
+	if ( ix < -32000 ) {
+		ix = -32000;
+	} else if ( ix > 32000 ) {
+		ix = 32000;
+	}
+	if ( iy < -32000 ) {
+		iy = -32000;
+	} else if ( iy > 32000 ) {
+		iy = 32000;
+	}
+
 	if ( ix < x1 ) {
 		x1 = ix;
 	}

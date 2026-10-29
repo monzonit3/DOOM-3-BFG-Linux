@@ -47,7 +47,7 @@ void * Mem_Alloc16( const int size, const memTag_t tag ) {
 		return NULL;
 	}
 	const int paddedSize = ( size + 15 ) & ~15;
-	return _aligned_malloc( paddedSize, 16 );
+	return SDL_aligned_alloc( 16, paddedSize );
 }
 
 /*
@@ -59,7 +59,7 @@ void Mem_Free16( void *ptr ) {
 	if ( ptr == NULL ) {
 		return;
 	}
-	_aligned_free( ptr );
+	SDL_aligned_free( ptr );
 }
 
 /*

@@ -1,0 +1,25 @@
+# 构建产物 / Build artifacts
+*.o
+*.obj
+*.exe
+*.dll
+*.lib
+*.a
+
+# Visual Studio 缓存与用户配置 / VS caches & user config
+.vs/
+build/
+*.vcxproj.user
+*.suo
+*.user
+
+# 解码输出 / Decoder output
+*.ppm
+*_audio.wav
+
+# 样本文件（不纳入仓库） / Sample files (not tracked)
+*.bik
+*.bk2
+
+# 其他临时文件 / Misc temp
+.smoke/

@@ -53,6 +53,61 @@ void GL_SelectTexture( int unit ) {
 
 /*
 ====================
+GL_TranslateBufferTarget
+
+GL_BACK / GL_FRONT and friends only exist on the default framebuffer. As soon as a
+framebuffer object is bound - the logical scaling target in borderless mode, or the
+resolve target used for windowed multisampling - passing them through raises
+GL_INVALID_OPERATION and leaves the previously set read/draw buffer in place, so
+the following glCopyTexImage2D / glReadPixels reads from the wrong buffer.
+The bound framebuffer decides, not a global mode flag.
+====================
+*/
+static GLenum GL_TranslateBufferTarget( GLenum mode, bool forRead ) {
+	GLint binding = 0;
+	glGetIntegerv( forRead ? GL_READ_FRAMEBUFFER_BINDING : GL_DRAW_FRAMEBUFFER_BINDING, &binding );
+
+	if( binding == 0 ) {
+		// default framebuffer: the window buffers are the valid targets
+		return mode;
+	}
+
+	switch( mode ) {
+		case GL_FRONT:
+		case GL_BACK:
+		case GL_LEFT:
+		case GL_RIGHT:
+		case GL_FRONT_LEFT:
+		case GL_FRONT_RIGHT:
+		case GL_BACK_LEFT:
+		case GL_BACK_RIGHT:
+		case GL_FRONT_AND_BACK:
+			return GL_COLOR_ATTACHMENT0;
+		default:
+			return mode;
+	}
+}
+
+/*
+====================
+GL_DrawBuffer
+====================
+*/
+void GL_DrawBuffer( GLenum mode ) {
+	glDrawBuffer( GL_TranslateBufferTarget( mode, false ) );
+}
+
+/*
+====================
+GL_ReadBuffer
+====================
+*/
+void GL_ReadBuffer( GLenum mode ) {
+	glReadBuffer( GL_TranslateBufferTarget( mode, true ) );
+}
+
+/*
+====================
 GL_Cull
 
 This handles the flipping needed when the view being
@@ -94,8 +149,77 @@ void GL_Cull( int cullType ) {
 GL_Scissor
 ====================
 */
+// the viewport last handed to GL_Viewport(), so a scissor rect can be clamped to it
+static int glScissorViewport[4] = { 0, 0, 0, 0 };
+
 void GL_Scissor( int x /* left*/, int y /* bottom */, int w, int h ) {
-	qglScissor( x, y, w, h );
+	// Scissor rects are derived from geometry projected to the screen and kept in
+	// idScreenRect's shorts, so surfaces that leave the viewport - a translucent window
+	// crossing the viewport edge, for example - can produce rects that are inverted,
+	// empty or far outside it. Trusting such a rect clips a whole pass down to the wrong
+	// region (or, with a negative size, to whatever was set last). The viewport and the
+	// depth buffer still bound the draw, so clamp the rect to the viewport and fall back
+	// to no scissor clipping at all when nothing usable survives.
+	if( glScissorViewport[2] <= 0 || glScissorViewport[3] <= 0 ) {
+		GLint vp[4] = { 0, 0, 0, 0 };
+		glGetIntegerv( GL_VIEWPORT, vp );
+		for( int i = 0; i < 4; i++ ) {
+			glScissorViewport[i] = vp[i];
+		}
+	}
+
+	const int vx = glScissorViewport[0];
+	const int vy = glScissorViewport[1];
+	const int vw = glScissorViewport[2];
+	const int vh = glScissorViewport[3];
+
+	if( vw <= 0 || vh <= 0 ) {
+		// no known viewport to clamp against, don't hand GL a negative size
+		if( w < 0 || h < 0 ) {
+			qglScissor( 0, 0, 0, 0 );
+			return;
+		}
+		qglScissor( x, y, w, h );
+		return;
+	}
+
+	int x1 = x;
+	int y1 = y;
+	int x2 = x + w;
+	int y2 = y + h;
+
+	if( x1 > x2 ) {
+		const int t = x1;
+		x1 = x2;
+		x2 = t;
+	}
+	if( y1 > y2 ) {
+		const int t = y1;
+		y1 = y2;
+		y2 = t;
+	}
+
+	if( x1 < vx ) {
+		x1 = vx;
+	}
+	if( y1 < vy ) {
+		y1 = vy;
+	}
+	if( x2 > vx + vw ) {
+		x2 = vx + vw;
+	}
+	if( y2 > vy + vh ) {
+		y2 = vy + vh;
+	}
+
+	if( x2 <= x1 || y2 <= y1 ) {
+		// nothing usable survived: the rect can't be trusted, so let the viewport do the
+		// clipping instead of blacking out the pass
+		qglScissor( vx, vy, vw, vh );
+		return;
+	}
+
+	qglScissor( x1, y1, x2 - x1, y2 - y1 );
 }
 
 /*
@@ -104,7 +228,20 @@ GL_Viewport
 ====================
 */
 void GL_Viewport( int x /* left */, int y /* bottom */, int w, int h ) {
+	// same reasoning as GL_Scissor: a negative size is a GL error that silently
+	// keeps the old viewport, which makes every following pass render into the
+	// wrong rectangle
+	if( w < 0 || h < 0 ) {
+		w = 1;
+		h = 1;
+	}
 	qglViewport( x, y, w, h );
+
+	// scissor rects are clamped against this
+	glScissorViewport[0] = x;
+	glScissorViewport[1] = y;
+	glScissorViewport[2] = w;
+	glScissorViewport[3] = h;
 }
 
 /*
@@ -251,7 +388,6 @@ void GL_SetDefaultState() {
 	qglPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 
 	// These should never be changed
-	qglShadeModel( GL_SMOOTH );
 	qglEnable( GL_DEPTH_TEST );
 	qglEnable( GL_BLEND );
 	qglEnable( GL_SCISSOR_TEST );

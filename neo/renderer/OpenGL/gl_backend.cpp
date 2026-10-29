@@ -213,7 +213,11 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t * const allCmds
 	// To allow stereo deghost processing, the views have to be copied to separate
 	// textures anyway, so there isn't any benefit to rendering to BACK_RIGHT for
 	// that eye.
-	qglDrawBuffer( GL_BACK_LEFT );
+	if ( renderSystem->GetStereo3DMode() == STEREO3D_QUAD_BUFFER ) {
+		GL_DrawBuffer( GL_BACK_LEFT );
+	} else {
+		GL_DrawBuffer( GL_BACK );
+	}
 
 	// create the stereoRenderImage if we haven't already
 	static idImage * stereoRenderImages[2];
@@ -306,7 +310,7 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t * const allCmds
 	// performance on most cards and drivers, but it is better than getting
 	// a confusing, half-ghosted view.
 	if ( renderSystem->GetStereo3DMode() != STEREO3D_QUAD_BUFFER ) {
-		glDrawBuffer( GL_BACK );
+		GL_DrawBuffer( GL_BACK );
 	}
 
 	GL_State( GLS_DEPTHFUNC_ALWAYS );
@@ -329,14 +333,14 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t * const allCmds
 
 	switch( renderSystem->GetStereo3DMode() ) {
 	case STEREO3D_QUAD_BUFFER:
-		glDrawBuffer( GL_BACK_RIGHT );
+		GL_DrawBuffer( GL_BACK_RIGHT );
 		GL_SelectTexture( 0 );
 		stereoRenderImages[1]->Bind();
 		GL_SelectTexture( 1 );
 		stereoRenderImages[0]->Bind();
 		RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 
-		glDrawBuffer( GL_BACK_LEFT );
+		GL_DrawBuffer( GL_BACK_LEFT );
 		GL_SelectTexture( 1 );
 		stereoRenderImages[1]->Bind();
 		GL_SelectTexture( 0 );

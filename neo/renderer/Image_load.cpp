@@ -450,12 +450,24 @@ void idImage::Bind() {
 	if ( opts.textureType == TT_2D ) {
 		if ( tmu->current2DMap != texnum ) {
 			tmu->current2DMap = texnum;
-			qglBindMultiTextureEXT( GL_TEXTURE0_ARB + texUnit, GL_TEXTURE_2D, texnum );
+			// the EXT direct state entry point is not exported by a core profile context, so select
+			// the unit and bind the texture the regular way in that case
+			if ( glConfig.directStateAccess ) {
+				qglBindMultiTextureEXT( GL_TEXTURE0_ARB + texUnit, GL_TEXTURE_2D, texnum );
+			} else {
+				GL_SelectTexture( texUnit );
+				qglBindTexture( GL_TEXTURE_2D, texnum );
+			}
 		}
 	} else if ( opts.textureType == TT_CUBIC ) {
 		if ( tmu->currentCubeMap != texnum ) {
 			tmu->currentCubeMap = texnum;
-			qglBindMultiTextureEXT( GL_TEXTURE0_ARB + texUnit, GL_TEXTURE_CUBE_MAP_EXT, texnum );
+			if ( glConfig.directStateAccess ) {
+				qglBindMultiTextureEXT( GL_TEXTURE0_ARB + texUnit, GL_TEXTURE_CUBE_MAP_EXT, texnum );
+			} else {
+				GL_SelectTexture( texUnit );
+				qglBindTexture( GL_TEXTURE_CUBE_MAP_EXT, texnum );
+			}
 		}
 	}
 
@@ -485,6 +497,8 @@ void idImage::CopyFramebuffer( int x, int y, int imageWidth, int imageHeight ) {
 
 	qglReadBuffer( GL_BACK );
 
+	GLimp_ResolveFramebuffer( false );
+
 	opts.width = imageWidth;
 	opts.height = imageHeight;
 	qglCopyTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, x, y, imageWidth, imageHeight, 0 );
@@ -506,6 +520,8 @@ CopyDepthbuffer
 */
 void idImage::CopyDepthbuffer( int x, int y, int imageWidth, int imageHeight ) {
 	qglBindTexture( ( opts.textureType == TT_CUBIC ) ? GL_TEXTURE_CUBE_MAP_EXT : GL_TEXTURE_2D, texnum );
+
+	GLimp_ResolveFramebuffer( true );
 
 	opts.width = imageWidth;
 	opts.height = imageHeight;

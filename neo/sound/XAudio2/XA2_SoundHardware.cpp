@@ -127,8 +127,13 @@ void listDevices_f( const idCmdArgs & args ) {
 		if ( deviceDetails.OutputFormat.dwChannelMask & SPEAKER_SIDE_RIGHT ) {
 			channelNames.Append( "Side Right" );
 		}
+		// FAudio hands back the device name as UTF-16, narrow it for printing
 		char mbcsDisplayName[ 256 ];
-		wcstombs( mbcsDisplayName, deviceDetails.DisplayName, sizeof( mbcsDisplayName ) );
+		int nameLen = 0;
+		for ( ; nameLen < 255 && deviceDetails.DisplayName[ nameLen ] != 0; nameLen++ ) {
+			mbcsDisplayName[ nameLen ] = ( char )deviceDetails.DisplayName[ nameLen ];
+		}
+		mbcsDisplayName[ nameLen ] = 0;
 		idLib::Printf( "%3d: %s\n", i, mbcsDisplayName );
 		idLib::Printf( "     %d channels, %d Hz\n", deviceDetails.OutputFormat.Format.nChannels, deviceDetails.OutputFormat.Format.nSamplesPerSec );
 		if ( channelNames.Num() != deviceDetails.OutputFormat.Format.nChannels ) {

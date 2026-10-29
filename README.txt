@@ -48,8 +48,11 @@ The Doom 3 BFG Edition GPL Source Code release does not include functionality fo
 Back End Rendering of Stencil Shadows:
 --------------------------------------
 
-The Doom 3 BFG Edition GPL Source Code release does not include functionality enabling rendering
-of stencil shadows via the "depth fail" method, a functionality commonly known as "Carmack's Reverse".
+This source code includes functionality enabling rendering of stencil shadows via the "depth fail"
+method, a functionality commonly known as "Carmack's Reverse".
+
+This method was patented by Creative Labs and that patent has finally expired on 2019-10-13.
+(see https://patents.google.com/patent/US6384822B1/en for expiration status)
 
 
 Other platforms, updated source code, security issues:

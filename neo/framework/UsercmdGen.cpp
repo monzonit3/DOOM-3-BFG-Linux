@@ -908,7 +908,6 @@ void idUsercmdGenLocal::JoystickMove2() {
 
 	idVec2 leftRaw( joystickAxis[ AXIS_LEFT_X ], joystickAxis[ AXIS_LEFT_Y ] );
 	idVec2 rightRaw( joystickAxis[ AXIS_RIGHT_X ], joystickAxis[ AXIS_RIGHT_Y ] );
-
 	// optional stick swap
 	if ( idKeyInput::GetUsercmdAction( K_JOY_STICK1_LEFT ) == UB_LOOKLEFT ) {
 		const idVec2	temp = leftRaw;
@@ -934,7 +933,6 @@ void idUsercmdGenLocal::JoystickMove2() {
 	// add on top of mouse / keyboard move values
 	cmd.forwardmove = idMath::ClampChar( cmd.forwardmove + KEY_MOVESPEED * -leftMapped.y );
 	cmd.rightmove = idMath::ClampChar( cmd.rightmove + KEY_MOVESPEED * leftMapped.x );
-
 	viewangles[PITCH] += MS2SEC( pollTime - lastPollTime ) * rightMapped.y * pitchSpeed;
 	viewangles[YAW] += MS2SEC( pollTime - lastPollTime ) * -rightMapped.x * yawSpeed;
 
@@ -1315,7 +1313,6 @@ idUsercmdGenLocal::BuildCurrentUsercmd
 ================
 */
 void idUsercmdGenLocal::BuildCurrentUsercmd( int deviceNum ) {
-
 	pollTime = Sys_Milliseconds();
 	if ( pollTime - lastPollTime > 100 ) {
 		lastPollTime = pollTime - 100;
@@ -1330,8 +1327,9 @@ void idUsercmdGenLocal::BuildCurrentUsercmd( int deviceNum ) {
 	// process the system keyboard events
 	Keyboard();
 
-	// process the system joystick events
-	if ( deviceNum >= 0 && in_useJoystick.GetBool() ) {
+	// process the system joystick events. Even without a signed-in input device,
+	// poll any connected pad so controller input still works.
+	if ( in_useJoystick.GetBool() ) {
 		Joystick( deviceNum );
 	}
 

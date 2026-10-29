@@ -1164,7 +1164,7 @@ idFile_Permanent::~idFile_Permanent
 */
 idFile_Permanent::~idFile_Permanent() {
 	if ( o ) {
-		CloseHandle( o );
+		SDL_CloseIO( o );
 	}
 }
 
@@ -1196,11 +1196,7 @@ int idFile_Permanent::Read( void *buffer, int len ) {
 	tries = 0;
 	while( remaining ) {
 		block = remaining;
-		DWORD bytesRead;
-		if ( !ReadFile( o, buf, block, &bytesRead, NULL ) ) {
-			idLib::Warning( "idFile_Permanent::Read failed with %d from %s", GetLastError(), name.c_str() );
-		}
-		read = bytesRead;
+		read = ( int )SDL_ReadIO( o, buf, block );
 		if ( read == 0 ) {
 			// we might have been trying to read from a CD, which
 			// sometimes returns a 0 read on windows
@@ -1212,8 +1208,8 @@ int idFile_Permanent::Read( void *buffer, int len ) {
 			}
 		}
 
-		if ( read == -1 ) {
-			common->FatalError( "idFile_Permanent::Read: -1 bytes read from %s", name.c_str() );
+		if ( read < 0 ) {
+			common->FatalError( "idFile_Permanent::Read: read error from %s: %s", name.c_str(), SDL_GetError() );
 		}
 
 		remaining -= read;
@@ -1250,9 +1246,7 @@ int idFile_Permanent::Write( const void *buffer, int len ) {
 	tries = 0;
 	while( remaining ) {
 		block = remaining;
-		DWORD bytesWritten;
-		WriteFile( o, buf, block, &bytesWritten, NULL );
-		written = bytesWritten;
+		written = ( int )SDL_WriteIO( o, buf, block );
 		if ( written == 0 ) {
 			if ( !tries ) {
 				tries = 1;
@@ -1263,8 +1257,8 @@ int idFile_Permanent::Write( const void *buffer, int len ) {
 			}
 		}
 
-		if ( written == -1 ) {
-			common->Printf( "idFile_Permanent::Write: -1 bytes written to %s\n", name.c_str() );
+		if ( written < 0 ) {
+			common->Printf( "idFile_Permanent::Write: write error on %s: %s\n", name.c_str(), SDL_GetError() );
 			return 0;
 		}
 
@@ -1284,7 +1278,7 @@ idFile_Permanent::ForceFlush
 =================
 */
 void idFile_Permanent::ForceFlush() {
-	FlushFileBuffers( o );
+	SDL_FlushIO( o );
 }
 
 /*
@@ -1293,7 +1287,7 @@ idFile_Permanent::Flush
 =================
 */
 void idFile_Permanent::Flush() {
-	FlushFileBuffers( o );
+	SDL_FlushIO( o );
 }
 
 /*
@@ -1302,7 +1296,7 @@ idFile_Permanent::Tell
 =================
 */
 int idFile_Permanent::Tell() const {
-	return SetFilePointer( o, 0, NULL, FILE_CURRENT );
+	return ( int )SDL_TellIO( o );
 }
 
 /*
@@ -1320,7 +1314,7 @@ idFile_Permanent::Timestamp
 ================
 */
 ID_TIME_T idFile_Permanent::Timestamp() const {
-	ID_TIME_T ts = Sys_FileTimeStamp( o );
+	ID_TIME_T ts = Sys_FileTimeStamp( fullPath.c_str() );
 	return ts;
 }
 
@@ -1332,13 +1326,13 @@ idFile_Permanent::Seek
 =================
 */
 int idFile_Permanent::Seek( long offset, fsOrigin_t origin ) {
-	int retVal = INVALID_SET_FILE_POINTER;
+	SDL_IOWhence whence = SDL_IO_SEEK_SET;
 	switch( origin ) {
-		case FS_SEEK_CUR: retVal = SetFilePointer( o, offset, NULL, FILE_CURRENT ); break;
-		case FS_SEEK_END: retVal = SetFilePointer( o, offset, NULL, FILE_END ); break;
-		case FS_SEEK_SET: retVal = SetFilePointer( o, offset, NULL, FILE_BEGIN ); break;
+		case FS_SEEK_CUR: whence = SDL_IO_SEEK_CUR; break;
+		case FS_SEEK_END: whence = SDL_IO_SEEK_END; break;
+		case FS_SEEK_SET: whence = SDL_IO_SEEK_SET; break;
 	}
-	return ( retVal == INVALID_SET_FILE_POINTER ) ? -1 : 0;
+	return ( SDL_SeekIO( o, offset, whence ) < 0 ) ? -1 : 0;
 }
 
 #if 1

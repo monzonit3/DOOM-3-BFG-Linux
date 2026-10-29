@@ -721,7 +721,7 @@ static void RB_ShowSilhouette() {
 					continue;
 				}
 
-				qglBindBufferARB( GL_ARRAY_BUFFER_ARB, (GLuint)vertexBuffer.GetAPIObject() );
+				qglBindBufferARB( GL_ARRAY_BUFFER_ARB, (GLuint)(uintptr_t)vertexBuffer.GetAPIObject() );
 				int vertOffset = vertexBuffer.GetOffset();
 
 				qglVertexPointer( 3, GL_FLOAT, sizeof( idShadowVert ), (void *)vertOffset );

@@ -26,7 +26,7 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "../../idLib/precompiled.h"
+#include "../../idlib/precompiled.h"
 #include "../Game_local.h"
 
 extern idCVar g_demoMode;
@@ -191,7 +191,7 @@ void idMenuScreen_Shell_Root::ShowScreen( const mainMenuTransition_t transitionT
 
 			idMenuWidget_Button * buttonWidget = NULL;
 
-#if !defined ( ID_RETAIL ) 
+#if defined( DOOM3_DEVELOPER_MODE ) 
 			option.Append( "DEV" );	// DEV
 			menuOptions.Append( option );
 			options->GetChildByIndex( index ).ClearEventActions();
@@ -417,7 +417,7 @@ bool idMenuScreen_Shell_Root::HandleAction( idWidgetAction & action, const idWid
 
 			int index = menuBar->GetViewIndex();			
 			const int dir = parms[0].ToInteger();
-#ifdef ID_RETAIL
+#if !defined( DOOM3_DEVELOPER_MODE )
 			const int totalCount = menuBar->GetTotalNumberOfOptions() - 1;
 #else
 			const int totalCount = menuBar->GetTotalNumberOfOptions();

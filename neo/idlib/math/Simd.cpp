@@ -126,6 +126,8 @@ idSIMDProcessor *p_generic;
 long baseClocks = 0;
 
 
+#if defined(_MSC_VER) && defined(_M_IX86)
+
 #define TIME_TYPE int
 
 #pragma warning(disable : 4731)     // frame pointer register 'ebx' modified by inline assembly code
@@ -149,6 +151,19 @@ long saved_ebx = 0;
 	__asm mov ebx, saved_ebx				\
 	__asm xor eax, eax						\
 	__asm cpuid
+
+#else
+
+// no portable rdtsc, so time with the SDL high resolution timer instead
+#define TIME_TYPE int
+
+#define StartRecordTime( start )			\
+	start = ( int )SDL_GetTicks();
+
+#define StopRecordTime( end )				\
+	end = ( int )SDL_GetTicks();
+
+#endif // _MSC_VER && _M_IX86
 
 
 #define GetBest( start, end, best )			\
@@ -1215,7 +1230,7 @@ idSIMD::Test_f
 */
 void idSIMD::Test_f( const idCmdArgs &args ) {
 
-	SetThreadPriority( GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL );
+	SDL_SetCurrentThreadPriority( SDL_THREAD_PRIORITY_TIME_CRITICAL );
 
 	p_simd = processor;
 	p_generic = generic;
@@ -1268,5 +1283,5 @@ void idSIMD::Test_f( const idCmdArgs &args ) {
 	p_simd = NULL;
 	p_generic = NULL;
 
-	SetThreadPriority( GetCurrentThread(), THREAD_PRIORITY_NORMAL );
+	SDL_SetCurrentThreadPriority( SDL_THREAD_PRIORITY_NORMAL );
 }

@@ -36,6 +36,20 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "idlib/containers/Array.h"
 
+// RB: the whole engine <-> Doom Classic interface was written against the
+// Windows/console SDKs, so provide the few Win32 names it uses in signatures
+// when building for a platform that has no <windows.h>.
+#ifndef _WIN32
+#include <stdint.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+typedef uint32_t DWORD;
+#ifndef MAX_PATH
+#define MAX_PATH 260
+#endif
+#endif
+// RB end
+
 class idSysMutex;
 class idUserCmdMgr;
 

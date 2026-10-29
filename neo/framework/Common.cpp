@@ -58,10 +58,10 @@ struct version_s {
 idCVar com_version( "si_version", version.string, CVAR_SYSTEM|CVAR_ROM|CVAR_SERVERINFO, "engine version" );
 idCVar com_forceGenericSIMD( "com_forceGenericSIMD", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR_NOCHEAT, "force generic platform independent SIMD" );
 
-#ifdef ID_RETAIL
-idCVar com_allowConsole( "com_allowConsole", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR_INIT, "allow toggling console with the tilde key" );
-#else
+#ifdef DOOM3_DEVELOPER_MODE
 idCVar com_allowConsole( "com_allowConsole", "1", CVAR_BOOL | CVAR_SYSTEM | CVAR_INIT, "allow toggling console with the tilde key" );
+#else
+idCVar com_allowConsole( "com_allowConsole", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR_INIT, "allow toggling console with the tilde key" );
 #endif
 
 idCVar com_developer( "developer", "0", CVAR_BOOL|CVAR_SYSTEM|CVAR_NOCHEAT, "developer mode" );
@@ -85,7 +85,6 @@ float com_engineHz_latched = 60.0f; // Latched version of cvar, updated between 
 int64 com_engineHz_numerator = 100LL * 1000LL;
 int64 com_engineHz_denominator = 100LL * 60LL;
 
-HWND com_hwndMsg = NULL;
 
 #ifdef __DOOM_DLL__
 idGame *		game = NULL;
@@ -236,7 +235,7 @@ void idCommonLocal::ParseCommandLine( int argc, const char * const * argv ) {
 	for ( i = 0; i < argc; i++ ) {
 		if ( idStr::Icmp( argv[ i ], "+connect_lobby" ) == 0 ) {
 			// Handle Steam bootable invites.
-			session->HandleBootableInvite( _atoi64( argv[ i + 1 ] ) );
+			session->HandleBootableInvite( SDL_strtoll( argv[ i + 1 ], NULL, 10 ) );
 		} else if ( argv[ i ][ 0 ] == '+' ) {
 			com_numConsoleLines++;
 			com_consoleLines[ com_numConsoleLines-1 ].AppendArg( argv[ i ] + 1 );
@@ -741,10 +740,39 @@ CONSOLE_COMMAND( finishBuild, "finishes the build process", NULL ) {
 
 /*
 =================
+PumpStartupEvents
+
+Processes queued window/input events while the splash and startup cinematic are
+running. In particular this lets window resize events update glConfig before the
+next frame is rendered.
+=================
+*/
+static void PumpStartupEvents() {
+	Sys_GenerateEvents();
+
+	for ( ;; ) {
+		sysEvent_t ev = Sys_GetEvent();
+		if ( ev.evType == SE_NONE ) {
+			break;
+		}
+		if ( ev.evType == SE_CONSOLE && ev.evPtr != NULL ) {
+			cmdSystem->BufferCommandText( CMD_EXEC_APPEND, ( const char * )ev.evPtr );
+			cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "\n" );
+		}
+		if ( ev.evPtr != NULL ) {
+			Mem_Free( ev.evPtr );
+		}
+	}
+}
+
+/*
+=================
 idCommonLocal::RenderSplash
 =================
 */
 void idCommonLocal::RenderSplash() {
+	PumpStartupEvents();
+
 	const float sysWidth = renderSystem->GetWidth() * renderSystem->GetPixelAspect();
 	const float sysHeight = renderSystem->GetHeight();
 	const float sysAspect = sysWidth / sysHeight;
@@ -775,13 +803,6 @@ idCommonLocal::RenderBink
 =================
 */
 void idCommonLocal::RenderBink( const char * path ) {
-	const float sysWidth = renderSystem->GetWidth() * renderSystem->GetPixelAspect();
-	const float sysHeight = renderSystem->GetHeight();
-	const float sysAspect = sysWidth / sysHeight;
-	const float movieAspect = ( 16.0f / 9.0f );
-	const float imageWidth = SCREEN_WIDTH * movieAspect / sysAspect;
-	const float chop = 0.5f * ( SCREEN_WIDTH - imageWidth );
-
 	idStr materialText;
 	materialText.Format( "{ translucent { videoMap %s } }", path );
 
@@ -790,10 +811,23 @@ void idCommonLocal::RenderBink( const char * path ) {
 	material->ResetCinematicTime( Sys_Milliseconds() );
 
 	while ( Sys_Milliseconds() <= material->GetCinematicStartTime() + material->CinematicLength() ) {
+		PumpStartupEvents();
+
+		const float sysWidth = renderSystem->GetWidth() * renderSystem->GetPixelAspect();
+		const float sysHeight = renderSystem->GetHeight();
+		const float sysAspect = sysWidth / sysHeight;
+		const float movieAspect = ( 16.0f / 9.0f );
+		const float imageWidth = SCREEN_WIDTH * movieAspect / sysAspect;
+		const float chop = 0.5f * ( SCREEN_WIDTH - imageWidth );
+
+		// Clear the whole virtual screen first so letterbox/pillarbox areas are black
+		// and do not retain the previous frame after a window resize.
+		renderSystem->SetColor( colorBlack );
+		renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 1, 1, whiteMaterial );
+		renderSystem->SetColor4( 1, 1, 1, 1 );
 		renderSystem->DrawStretchPic( chop, 0, imageWidth, SCREEN_HEIGHT, 0, 0, 1, 1, material );
 		const emptyCommand_t * cmd = renderSystem->SwapCommandBuffers( &time_frontend, &time_backend, &time_shadows, &time_gpu );
 		renderSystem->RenderCommandBuffers( cmd );
-		Sys_GenerateEvents();
 		Sys_Sleep( 10 );
 	}
 

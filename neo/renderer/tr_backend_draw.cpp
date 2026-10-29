@@ -34,7 +34,7 @@ If you have questions concerning this license or the applicable additional terms
 idCVar r_drawEyeColor( "r_drawEyeColor", "0", CVAR_RENDERER | CVAR_BOOL, "Draw a colored box, red = left eye, blue = right eye, grey = non-stereo" );
 idCVar r_motionBlur( "r_motionBlur", "0", CVAR_RENDERER | CVAR_INTEGER | CVAR_ARCHIVE, "1 - 5, log2 of the number of motion blur samples" );
 idCVar r_forceZPassStencilShadows( "r_forceZPassStencilShadows", "0", CVAR_RENDERER | CVAR_BOOL, "force Z-pass rendering for performance testing" );
-idCVar r_useStencilShadowPreload( "r_useStencilShadowPreload", "1", CVAR_RENDERER | CVAR_BOOL, "use stencil shadow preload algorithm instead of Z-fail" );
+idCVar r_useStencilShadowPreload( "r_useStencilShadowPreload", "0", CVAR_RENDERER | CVAR_BOOL, "use stencil shadow preload algorithm instead of Z-fail" );
 idCVar r_skipShaderPasses( "r_skipShaderPasses", "0", CVAR_RENDERER | CVAR_BOOL, "" );
 idCVar r_skipInteractionFastPath( "r_skipInteractionFastPath", "1", CVAR_RENDERER | CVAR_BOOL, "" );
 idCVar r_useLightStencilSelect( "r_useLightStencilSelect", "0", CVAR_RENDERER | CVAR_BOOL, "use stencil select pass" );
@@ -176,20 +176,20 @@ void RB_DrawElementsWithCounters( const drawSurf_t *surf ) {
 		}
 		assert( ( jointBuffer.GetOffset() & ( glConfig.uniformBufferOffsetAlignment - 1 ) ) == 0 );
 
-		const GLuint ubo = reinterpret_cast< GLuint >( jointBuffer.GetAPIObject() );
+		const GLuint ubo = static_cast< GLuint >( reinterpret_cast< uintptr_t >( jointBuffer.GetAPIObject() ) );
 		qglBindBufferRange( GL_UNIFORM_BUFFER, 0, ubo, jointBuffer.GetOffset(), jointBuffer.GetNumJoints() * sizeof( idJointMat ) );
 	}
 
 	renderProgManager.CommitUniforms();
 
-	if ( backEnd.glState.currentIndexBuffer != (GLuint)indexBuffer->GetAPIObject() || !r_useStateCaching.GetBool() ) {
-		qglBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB, (GLuint)indexBuffer->GetAPIObject() );
-		backEnd.glState.currentIndexBuffer = (GLuint)indexBuffer->GetAPIObject();
+	if ( backEnd.glState.currentIndexBuffer != (GLuint)(uintptr_t)indexBuffer->GetAPIObject() || !r_useStateCaching.GetBool() ) {
+		qglBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB, (GLuint)(uintptr_t)indexBuffer->GetAPIObject() );
+		backEnd.glState.currentIndexBuffer = (GLuint)(uintptr_t)indexBuffer->GetAPIObject();
 	}
 
-	if ( ( backEnd.glState.vertexLayout != LAYOUT_DRAW_VERT ) || ( backEnd.glState.currentVertexBuffer != (GLuint)vertexBuffer->GetAPIObject() ) || !r_useStateCaching.GetBool() ) {
-		qglBindBufferARB( GL_ARRAY_BUFFER_ARB, (GLuint)vertexBuffer->GetAPIObject() );
-		backEnd.glState.currentVertexBuffer = (GLuint)vertexBuffer->GetAPIObject();
+	if ( ( backEnd.glState.vertexLayout != LAYOUT_DRAW_VERT ) || ( backEnd.glState.currentVertexBuffer != (GLuint)(uintptr_t)vertexBuffer->GetAPIObject() ) || !r_useStateCaching.GetBool() ) {
+		qglBindBufferARB( GL_ARRAY_BUFFER_ARB, (GLuint)(uintptr_t)vertexBuffer->GetAPIObject() );
+		backEnd.glState.currentVertexBuffer = (GLuint)(uintptr_t)vertexBuffer->GetAPIObject();
 
 		qglEnableVertexAttribArrayARB( PC_ATTRIB_INDEX_VERTEX );
 		qglEnableVertexAttribArrayARB( PC_ATTRIB_INDEX_NORMAL );
@@ -1462,6 +1462,8 @@ static void RB_StencilShadowPass( const drawSurf_t *drawSurfs, const viewLight_t
 			qglStencilOpSeparate( GL_BACK, GL_KEEP, GL_INCR, GL_INCR );
 		} else {
 			// Z-fail
+			qglStencilOpSeparate( GL_FRONT, GL_KEEP, GL_DECR, GL_KEEP );
+			qglStencilOpSeparate( GL_BACK, GL_KEEP, GL_INCR, GL_KEEP );
 		}
 
 
@@ -1498,9 +1500,9 @@ static void RB_StencilShadowPass( const drawSurf_t *drawSurfs, const viewLight_t
 		RENDERLOG_PRINTF( "Binding Buffers: %p %p\n", vertexBuffer, indexBuffer );
 
 
-		if ( backEnd.glState.currentIndexBuffer != (GLuint)indexBuffer->GetAPIObject() || !r_useStateCaching.GetBool() ) {
-			qglBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB, (GLuint)indexBuffer->GetAPIObject() );
-			backEnd.glState.currentIndexBuffer = (GLuint)indexBuffer->GetAPIObject();
+		if ( backEnd.glState.currentIndexBuffer != (GLuint)(uintptr_t)indexBuffer->GetAPIObject() || !r_useStateCaching.GetBool() ) {
+			qglBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB, (GLuint)(uintptr_t)indexBuffer->GetAPIObject() );
+			backEnd.glState.currentIndexBuffer = (GLuint)(uintptr_t)indexBuffer->GetAPIObject();
 		}
 
 		if ( drawSurf->jointCache ) {
@@ -1513,12 +1515,12 @@ static void RB_StencilShadowPass( const drawSurf_t *drawSurfs, const viewLight_t
 			}
 			assert( ( jointBuffer.GetOffset() & ( glConfig.uniformBufferOffsetAlignment - 1 ) ) == 0 );
 
-			const GLuint ubo = reinterpret_cast< GLuint >( jointBuffer.GetAPIObject() );
+			const GLuint ubo = static_cast< GLuint >( reinterpret_cast< uintptr_t >( jointBuffer.GetAPIObject() ) );
 			qglBindBufferRange( GL_UNIFORM_BUFFER, 0, ubo, jointBuffer.GetOffset(), jointBuffer.GetNumJoints() * sizeof( idJointMat ) );
 
-			if ( ( backEnd.glState.vertexLayout != LAYOUT_DRAW_SHADOW_VERT_SKINNED) || ( backEnd.glState.currentVertexBuffer != (GLuint)vertexBuffer->GetAPIObject() ) || !r_useStateCaching.GetBool() ) {
-				qglBindBufferARB( GL_ARRAY_BUFFER_ARB, (GLuint)vertexBuffer->GetAPIObject() );
-				backEnd.glState.currentVertexBuffer = (GLuint)vertexBuffer->GetAPIObject();
+			if ( ( backEnd.glState.vertexLayout != LAYOUT_DRAW_SHADOW_VERT_SKINNED) || ( backEnd.glState.currentVertexBuffer != (GLuint)(uintptr_t)vertexBuffer->GetAPIObject() ) || !r_useStateCaching.GetBool() ) {
+				qglBindBufferARB( GL_ARRAY_BUFFER_ARB, (GLuint)(uintptr_t)vertexBuffer->GetAPIObject() );
+				backEnd.glState.currentVertexBuffer = (GLuint)(uintptr_t)vertexBuffer->GetAPIObject();
 
 				qglEnableVertexAttribArrayARB( PC_ATTRIB_INDEX_VERTEX );
 				qglDisableVertexAttribArrayARB( PC_ATTRIB_INDEX_NORMAL );
@@ -1536,9 +1538,9 @@ static void RB_StencilShadowPass( const drawSurf_t *drawSurfs, const viewLight_t
 
 		} else {
 
-			if ( ( backEnd.glState.vertexLayout != LAYOUT_DRAW_SHADOW_VERT ) || ( backEnd.glState.currentVertexBuffer != (GLuint)vertexBuffer->GetAPIObject() ) || !r_useStateCaching.GetBool() ) {
-				qglBindBufferARB( GL_ARRAY_BUFFER_ARB, (GLuint)vertexBuffer->GetAPIObject() );
-				backEnd.glState.currentVertexBuffer = (GLuint)vertexBuffer->GetAPIObject();
+			if ( ( backEnd.glState.vertexLayout != LAYOUT_DRAW_SHADOW_VERT ) || ( backEnd.glState.currentVertexBuffer != (GLuint)(uintptr_t)vertexBuffer->GetAPIObject() ) || !r_useStateCaching.GetBool() ) {
+				qglBindBufferARB( GL_ARRAY_BUFFER_ARB, (GLuint)(uintptr_t)vertexBuffer->GetAPIObject() );
+				backEnd.glState.currentVertexBuffer = (GLuint)(uintptr_t)vertexBuffer->GetAPIObject();
 
 				qglEnableVertexAttribArrayARB( PC_ATTRIB_INDEX_VERTEX );
 				qglDisableVertexAttribArrayARB( PC_ATTRIB_INDEX_NORMAL );

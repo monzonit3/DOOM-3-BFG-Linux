@@ -26,7 +26,7 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "../../idLib/precompiled.h"
+#include "../../idlib/precompiled.h"
 #include "../Game_local.h"
 
 const static int NUM_SYSTEM_OPTIONS_OPTIONS = 8;
@@ -481,14 +481,16 @@ idSWFScriptVar idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings
 			if ( fullscreen == 0 ) {
 				return "#str_swf_disabled";
 			}
-			if ( fullscreen < 0 || vidmode < 0 || vidmode >= modeList.Num() ) {
-				return "???";
+			if ( fullscreen > 0 && vidmode >= 0 && vidmode < modeList.Num() ) {
+				if ( modeList[vidmode].displayHz == 60 ) {
+					return va( "%4i x %4i", modeList[vidmode].width, modeList[vidmode].height );
+				} else {
+					return va( "%4i x %4i @ %dhz", modeList[vidmode].width, modeList[vidmode].height, modeList[vidmode].displayHz );
+				}
 			}
-			if ( modeList[vidmode].displayHz == 60 ) {
-				return va( "%4i x %4i", modeList[vidmode].width, modeList[vidmode].height );
-			} else {
-				return va( "%4i x %4i @ %dhz", modeList[vidmode].width, modeList[vidmode].height, modeList[vidmode].displayHz );
-			}
+			// r_fullScreen is negative (fullscreen on the current display) or r_vidMode
+			// doesn't describe a known mode, so show the resolution we're actually using
+			return va( "%4i x %4i", renderSystem->GetWidth(), renderSystem->GetHeight() );
 		}
 		case SYSTEM_FIELD_FRAMERATE:
 			return va( "%d FPS", com_engineHz.GetInteger() );

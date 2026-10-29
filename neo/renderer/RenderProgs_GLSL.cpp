@@ -496,8 +496,42 @@ struct typeConversion_t {
 	{ NULL, NULL }
 };
 
+// The renderer runs on a core profile context, so the deprecated built-ins (gl_Color, gl_FrontColor,
+// gl_FragColor, ...) the Cg sources imply are not available at all. Every program gets explicit in/out
+// variables instead, see CoreGLSLName()
+const char * glslVersion = "#version 150 core\n";
+
+/*
+================================================
+CoreGLSLName
+
+Maps a deprecated built-in to the explicit in/out variable that replaces it. The vertex and the
+fragment program are converted separately, but they end up with the same names, so the values are
+still passed from one stage to the other.
+================================================
+*/
+static const char * CoreGLSLName( const char * nameGLSL ) {
+	static const struct {
+		const char * builtIn;
+		const char * core;
+	} builtInToCore[] = {
+		{ "gl_FragColor",			"o_color" },
+		{ "gl_FrontColor",			"vofi_Color" },
+		{ "gl_FrontSecondaryColor",	"vofi_SecondaryColor" },
+		{ "gl_Color",				"vofi_Color" },
+		{ "gl_SecondaryColor",		"vofi_SecondaryColor" },
+		{ NULL, NULL }
+	};
+
+	for ( int i = 0; builtInToCore[i].builtIn != NULL; i++ ) {
+		if ( strcmp( nameGLSL, builtInToCore[i].builtIn ) == 0 ) {
+			return builtInToCore[i].core;
+		}
+	}
+	return nameGLSL;
+}
+
 const char * vertexInsert = {
-	"#version 150\n"
 	"#define PC\n"
 	"\n"
 	"float saturate( float v ) { return clamp( v, 0.0, 1.0 ); }\n"
@@ -509,7 +543,6 @@ const char * vertexInsert = {
 };
 
 const char * fragmentInsert = {
-	"#version 150\n"
 	"#define PC\n"
 	"\n"
 	"void clip( float v ) { if ( v < 0.0 ) { discard; } }\n"
@@ -611,8 +644,15 @@ void ParseInOutStruct( idLexer & src, int attribType, idList< inOutVariable_t > 
 			}
 		}
 
+		// replace the deprecated built-ins with explicit variables
+		var.nameGLSL = CoreGLSLName( var.nameGLSL.c_str() );
+
 		// check if it was defined previously
 		var.declareInOut = true;
+		// GLSL pre-declares all the gl_* built-ins, redeclaring them is an error
+		if ( var.nameGLSL.Cmpn( "gl_", 3 ) == 0 ) {
+			var.declareInOut = false;
+		}
 		for ( int i = 0; i < inOutVars.Num(); i++ ) {
 			if ( var.nameGLSL == inOutVars[i].nameGLSL ) {
 				var.declareInOut = false;
@@ -872,10 +912,12 @@ idStr ConvertCG2GLSL( const idStr & in, const char * name, bool isVertexProgram,
 	idStr out;
 
 	if ( isVertexProgram ) {
-		out.ReAllocate( idStr::Length( vertexInsert ) + in.Length() * 2, false );
+		out.ReAllocate( idStr::Length( glslVersion ) + idStr::Length( vertexInsert ) + in.Length() * 2, false );
+		out += glslVersion;
 		out += vertexInsert;
 	} else {
-		out.ReAllocate( idStr::Length( fragmentInsert ) + in.Length() * 2, false );
+		out.ReAllocate( idStr::Length( glslVersion ) + idStr::Length( fragmentInsert ) + in.Length() * 2, false );
+		out += glslVersion;
 		out += fragmentInsert;
 	}
 
@@ -904,6 +946,184 @@ idStr ConvertCG2GLSL( const idStr & in, const char * name, bool isVertexProgram,
 }
 
 /*
+================================================
+BuiltInGLSLDeclaration
+
+Returns true if the given line declares one of the GLSL built-in variables, like
+"out vec4 gl_Position;". GLSL declares those itself, re-declaring them is an error.
+================================================
+*/
+static bool BuiltInGLSLDeclaration( const char * line, const int length ) {
+	int i = 0;
+	while ( i < length && ( line[i] == ' ' || line[i] == '\t' ) ) {
+		i++;
+	}
+
+	if ( ( i + 3 <= length ) && ( idStr::Cmpn( line + i, "in ", 3 ) == 0 ) ) {
+		i += 3;
+	} else if ( ( i + 4 <= length ) && ( idStr::Cmpn( line + i, "out ", 4 ) == 0 ) ) {
+		i += 4;
+	} else {
+		return false;
+	}
+
+	// skip the type
+	while ( i < length && line[i] != ' ' && line[i] != '\t' ) {
+		i++;
+	}
+	while ( i < length && ( line[i] == ' ' || line[i] == '\t' ) ) {
+		i++;
+	}
+
+	// it is only a built-in if its name says so
+	if ( ( i + 3 > length ) || ( idStr::Cmpn( line + i, "gl_", 3 ) != 0 ) ) {
+		return false;
+	}
+
+	// and the declaration has to end on this line
+	int end = length - 1;
+	while ( end >= 0 && ( line[end] == ' ' || line[end] == '\t' || line[end] == '\r' ) ) {
+		end--;
+	}
+
+	return ( end > i ) && ( line[end] == ';' );
+}
+
+/*
+================================================
+The deprecated built-ins a shader from an older version can still contain, and the explicit in/out
+variable that replaces it. The order matters, the longer names have to be replaced first.
+================================================
+*/
+struct legacyBuiltIn_t {
+	const char *	builtIn;
+	const char *	replacement;
+	const char *	type;
+	bool			out;
+};
+
+static const legacyBuiltIn_t vertexBuiltIns[] = {
+	{ "gl_FrontSecondaryColor",	"vofi_SecondaryColor",	"vec4",		true },
+	{ "gl_FrontColor",			"vofi_Color",			"vec4",		true },
+	{ "gl_FogFragCoord",		"vofi_Fog",				"float",	true },
+	{ NULL, NULL, NULL, false }
+};
+
+static const legacyBuiltIn_t fragmentBuiltIns[] = {
+	{ "gl_FragColor",			"o_color",				"vec4",		true },
+	{ "gl_SecondaryColor",		"vofi_SecondaryColor",	"vec4",		false },
+	{ "gl_Color",				"vofi_Color",			"vec4",		false },
+	{ "gl_FogFragCoord",		"vofi_Fog",				"float",	false },
+	{ NULL, NULL, NULL, false }
+};
+
+/*
+================================================
+MakeGLSLSourceAcceptable
+
+The GLSL files shipped with the game were generated by id's tools for a Windows driver that
+tolerated re-declaring the gl_* built-ins, and they don't ask for the compatibility profile.
+Both are errors on Mesa, so patch the source up before handing it to the driver:
+- the deprecated built-ins (gl_Color, gl_FrontColor, gl_FragColor, ...) don't exist in the core
+  profile the renderer asks for, so sources that still use them get explicit in/out variables
+- re-declaring any of the built-ins is never allowed
+================================================
+*/
+static void MakeGLSLSourceAcceptable( idStr & programGLSL, const GLenum target ) {
+	// never ask for the compatibility profile, the renderer runs on a core context. A plain
+	// "#version 150" is treated as core as well, so it only needs the profile added explicitly
+	programGLSL.Replace( "#version 150 compatibility\n", "#version 150 core\n" );
+	programGLSL.Replace( "#version 150 compatibility\r\n", "#version 150 core\r\n" );
+	programGLSL.Replace( "#version 150\n", "#version 150 core\n" );
+	programGLSL.Replace( "#version 150\r\n", "#version 150 core\r\n" );
+
+	const char * scan = programGLSL.c_str();
+	idStr result;
+	while( *scan != '\0' ) {
+		const char * lineEnd = strchr( scan, '\n' );
+		const int lineLength = ( lineEnd != NULL ) ? ( int )( lineEnd - scan ) : ( int )strlen( scan );
+
+		if ( !BuiltInGLSLDeclaration( scan, lineLength ) ) {
+			result.Append( scan, lineLength );
+			result.Append( '\n' );
+		}
+
+		if ( lineEnd == NULL ) {
+			break;
+		}
+		scan = lineEnd + 1;
+	}
+
+	programGLSL = result;
+
+	// a shader that was generated by an older version of the game (or by id's original tools) still
+	// uses the deprecated built-ins, which the core profile doesn't have. Rewrite them to the same
+	// explicit variables the generator uses, so both stages end up agreeing on the names.
+	const legacyBuiltIn_t * builtIns = ( target == GL_FRAGMENT_SHADER ) ? fragmentBuiltIns : vertexBuiltIns;
+
+	idStr declarations;
+	for ( int i = 0; builtIns[i].builtIn != NULL; i++ ) {
+		if ( programGLSL.Find( builtIns[i].builtIn ) == -1 ) {
+			continue;
+		}
+		programGLSL.Replace( builtIns[i].builtIn, builtIns[i].replacement );
+
+		idStr declared( " " );
+		declared += builtIns[i].replacement;
+		declared += ";";
+		if ( programGLSL.Find( declared.c_str() ) != -1 ) {
+			continue;	// the generator already declared it
+		}
+		declarations += builtIns[i].out ? "out " : "in ";
+		declarations += va( "%s %s;\n", builtIns[i].type, builtIns[i].replacement );
+	}
+
+	if ( declarations.Length() > 0 ) {
+		// put the declarations in front of main(), where the generator puts them
+		int mainAt = programGLSL.Find( "\nvoid main" );
+		if ( mainAt != -1 ) {
+			mainAt += 1;
+		} else {
+			mainAt = programGLSL.Find( "void main" );
+		}
+		if ( mainAt != -1 ) {
+			idStr patched;
+			patched.ReAllocate( programGLSL.Length() + declarations.Length() + 1, false );
+			patched += programGLSL.Left( mainAt );
+			patched += declarations;
+			patched += "\n";
+			patched += programGLSL.Right( programGLSL.Length() - mainAt );
+			programGLSL = patched;
+		}
+	}
+}
+
+/*
+================================================
+HasDeprecatedGLSL
+
+Returns true if the source still relies on one of the built-ins that only exist in the
+compatibility profile, which the renderer no longer asks for.
+================================================
+*/
+static bool HasDeprecatedGLSL( const idStr & source ) {
+	static const char * deprecated[] = {
+		"gl_FragColor",		"gl_FragData",			"gl_Color",			"gl_SecondaryColor",
+		"gl_FrontColor",	"gl_FrontSecondaryColor",	"gl_FogFragCoord",	"gl_Fog",
+		"gl_TexCoord",		"gl_MultiTexCoord",		"gl_Vertex",		"gl_ClipVertex",
+		"gl_ModelView",		"gl_ProjectionMatrix",	"gl_TextureMatrix",	"gl_LightSource",
+		"gl_FrontMaterial",	NULL
+	};
+
+	for ( int i = 0; deprecated[i] != NULL; i++ ) {
+		if ( source.Find( deprecated[i] ) != -1 ) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/*
 ================================================================================================
 idRenderProgManager::LoadGLSLShader
 ================================================================================================
@@ -914,13 +1134,13 @@ GLuint idRenderProgManager::LoadGLSLShader( GLenum target, const char * name, id
 	idStr outFileHLSL;
 	idStr outFileGLSL;
 	idStr outFileUniforms;
-	inFile.Format( "renderprogs\\%s", name );
+	inFile.Format( "renderprogs/%s", name );
 	inFile.StripFileExtension();
-	outFileHLSL.Format( "renderprogs\\glsl\\%s", name );
+	outFileHLSL.Format( "renderprogs/glsl/%s", name );
 	outFileHLSL.StripFileExtension();
-	outFileGLSL.Format( "renderprogs\\glsl\\%s", name );
+	outFileGLSL.Format( "renderprogs/glsl/%s", name );
 	outFileGLSL.StripFileExtension();
-	outFileUniforms.Format( "renderprogs\\glsl\\%s", name );
+	outFileUniforms.Format( "renderprogs/glsl/%s", name );
 	outFileUniforms.StripFileExtension();
 	if ( target == GL_FRAGMENT_SHADER ) {
 		inFile += ".pixel";
@@ -942,29 +1162,42 @@ GLuint idRenderProgManager::LoadGLSLShader( GLenum target, const char * name, id
 	int glslFileLength = fileSystem->ReadFile( outFileGLSL.c_str(), NULL, &glslTimeStamp );
 
 	// if the glsl file doesn't exist or we have a newer HLSL file we need to recreate the glsl file.
+	bool needsGenerate = ( glslFileLength <= 0 ) || ( hlslTimeStamp > glslTimeStamp );
+
+	// the shaders are generated for a core profile context now, so a cached file that isn't core
+	// GLSL - generated by an older version of the game or by id's original tools - has to be
+	// regenerated, even when its timestamp says it is up to date
+	if ( !needsGenerate ) {
+		void * cachedBuffer = NULL;
+		if ( fileSystem->ReadFile( outFileGLSL.c_str(), &cachedBuffer ) > 0 && cachedBuffer != NULL ) {
+			const idStr cachedSource( ( const char * ) cachedBuffer );
+			needsGenerate = ( idStr::Cmpn( cachedSource.c_str(), glslVersion, idStr::Length( glslVersion ) ) != 0 ) ||
+							HasDeprecatedGLSL( cachedSource );
+			Mem_Free( cachedBuffer );
+		}
+	}
+
 	idStr programGLSL;
 	idStr programUniforms;
-	if ( ( glslFileLength <= 0 ) || ( hlslTimeStamp > glslTimeStamp ) ) {
-		if ( hlslFileLength <= 0 ) {
-			// hlsl file doesn't even exist bail out
-			return false;
-		}
 
+	// generate the shader from the Cg source when it is available, everything the game ships
+	// pregenerated (a retail install has no renderprogs sources) is only patched up further down
+	if ( needsGenerate && hlslFileLength > 0 ) {
 		void * hlslFileBuffer = NULL;
-		int len = fileSystem->ReadFile( inFile.c_str(), &hlslFileBuffer );
-		if ( len <= 0 ) {
-			return false;
-		}
-		idStr hlslCode( ( const char* ) hlslFileBuffer );
-		idStr programHLSL = StripDeadCode( hlslCode, inFile );
-		programGLSL = ConvertCG2GLSL( programHLSL, inFile, target == GL_VERTEX_SHADER, programUniforms );
+		if ( fileSystem->ReadFile( inFile.c_str(), &hlslFileBuffer ) > 0 ) {
+			idStr hlslCode( ( const char* ) hlslFileBuffer );
+			idStr programHLSL = StripDeadCode( hlslCode, inFile );
+			programGLSL = ConvertCG2GLSL( programHLSL, inFile, target == GL_VERTEX_SHADER, programUniforms );
 
-		fileSystem->WriteFile( outFileHLSL, programHLSL.c_str(), programHLSL.Length(), "fs_basepath" );
-		fileSystem->WriteFile( outFileGLSL, programGLSL.c_str(), programGLSL.Length(), "fs_basepath" );
-		if ( r_useUniformArrays.GetBool() ) {
-			fileSystem->WriteFile( outFileUniforms, programUniforms.c_str(), programUniforms.Length(), "fs_basepath" );
+			fileSystem->WriteFile( outFileHLSL, programHLSL.c_str(), programHLSL.Length(), "fs_basepath" );
+			fileSystem->WriteFile( outFileGLSL, programGLSL.c_str(), programGLSL.Length(), "fs_basepath" );
+			if ( r_useUniformArrays.GetBool() ) {
+				fileSystem->WriteFile( outFileUniforms, programUniforms.c_str(), programUniforms.Length(), "fs_basepath" );
+			}
 		}
-	} else {
+	}
+
+	if ( programGLSL.Length() == 0 ) {
 		// read in the glsl file
 		void * fileBufferGLSL = NULL;
 		int lengthGLSL = fileSystem->ReadFile( outFileGLSL.c_str(), &fileBufferGLSL );
@@ -1012,6 +1245,8 @@ GLuint idRenderProgManager::LoadGLSLShader( GLenum target, const char * name, id
 			uniforms.Append( index );
 		}
 	}
+
+	MakeGLSLSourceAcceptable( programGLSL, target );
 
 	// create and compile the shader
 	const GLuint shader = qglCreateShader( target );

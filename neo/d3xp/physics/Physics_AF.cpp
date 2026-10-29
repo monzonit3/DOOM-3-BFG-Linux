@@ -5222,18 +5222,34 @@ void idPhysics_AF::AuxiliaryForces( float timeStep ) {
 		}
 	}
 
+	for ( int ii = 0; ii < numAuxConstraints; ii++ ) {
+		for ( int jj = 0; jj < numAuxConstraints; jj++ ) {
+			if ( IsNAN( jmk[ii][jj] ) ) {
+				return;
+			}
+		}
+	}
+
 #ifdef AF_TIMINGS
 	timer_lcp.Start();
 #endif
 
 	// calculate lagrange multipliers for auxiliary constraints
-	if ( !lcp->Solve( jmk, lm, rhs, lo, hi, boxIndex ) ) {
-		return;		// bad monkey!
-	}
+	bool solveOk = lcp->Solve( jmk, lm, rhs, lo, hi, boxIndex );
 
 #ifdef AF_TIMINGS
 	timer_lcp.Stop();
 #endif
+
+	if ( !solveOk ) {
+		return;		// bad monkey!
+	}
+
+	for ( int ii = 0; ii < lm.GetSize(); ii++ ) {
+		if ( IsNAN( lm[ii] ) ) {
+			return;
+		}
+	}
 
 	// calculate auxiliary constraint forces
 	for ( k = 0, i = 0; i < auxiliaryConstraints.Num(); i++ ) {
@@ -6228,7 +6244,6 @@ bool idPhysics_AF::Evaluate( int timeStepMSec, int endTimeMSec ) {
 		timeStep = MS2SEC( timeStepMSec ) * timeScale;
 	}
 	current.lastTimeStep = timeStep;
-
 
 	// if the articulated figure changed
 	if ( changedAF || ( linearTime != af_useLinearTime.GetBool() ) ) {

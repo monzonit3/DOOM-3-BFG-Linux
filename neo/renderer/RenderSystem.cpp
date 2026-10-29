@@ -651,7 +651,7 @@ void idRenderSystemLocal::SwapCommandBuffers_FinishRendering(
 
 	// read back the start and end timer queries from the previous frame
 	if ( glConfig.timerQueryAvailable ) {
-		uint64 drawingTimeNanoseconds = 0;
+		GLuint64 drawingTimeNanoseconds = 0;
 		if ( tr.timerQueryId != 0 ) {
 			qglGetQueryObjectui64vEXT( tr.timerQueryId, GL_QUERY_RESULT, &drawingTimeNanoseconds );
 		}
@@ -945,6 +945,8 @@ void idRenderSystemLocal::CaptureRenderToFile( const char *fileName, bool fixAlp
 	RenderCommandBuffers( frameData->cmdHead );
 
 	qglReadBuffer( GL_BACK );
+
+	GLimp_ResolveFramebuffer( false );
 
 	// include extra space for OpenGL padding to word boundaries
 	int	c = ( rc.GetWidth() + 3 ) * rc.GetHeight();
