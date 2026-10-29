@@ -36,6 +36,8 @@ class idSoundVoice_XAudio2;
 idSoundEngineCallback
 ================================================
 */
+class idSoundHardware_XAudio2;
+
 class idSoundEngineCallback : public IXAudio2EngineCallback {
 public:
 	idSoundHardware_XAudio2 * hardware;

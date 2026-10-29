@@ -81,7 +81,7 @@ Assumes the source and destination have the same memory alignment.
 */
 static void Multiply_SIMD( float * dst, const float * src0, const float * src1, const int count ) {
 	int i = 0;
-	for ( ; ( (unsigned int)dst & 0xF ) != 0 && i < count; i++ ) {
+	for ( ; ( (uintptr_t)dst & 0xF ) != 0 && i < count; i++ ) {
 		dst[i] = src0[i] * src1[i];
 	}
 
@@ -129,7 +129,7 @@ Assumes the source and destination have the same memory alignment.
 */
 static void MultiplyAdd_SIMD( float * dst, const float constant, const float * src, const int count ) {
 	int i = 0;
-	for ( ; ( (unsigned int)dst & 0xF ) != 0 && i < count; i++ ) {
+	for ( ; ( (uintptr_t)dst & 0xF ) != 0 && i < count; i++ ) {
 		dst[i] += constant * src[i];
 	}
 
@@ -202,17 +202,18 @@ static float DotProduct_SIMD( const float * src0, const float * src1, const int 
 	float s2 = 0.0f;
 	float s3 = 0.0f;
 	int i = 0;
-	for ( ; i < count - 3; i += 4 ) {
-		s0 += src0[i+4] * src1[i+4];
-		s1 += src0[i+5] * src1[i+5];
-		s2 += src0[i+6] * src1[i+6];
-		s3 += src0[i+7] * src1[i+7];
+	for ( ; i + 4 <= count; i += 4 ) {
+		s0 += src0[i+0] * src1[i+0];
+		s1 += src0[i+1] * src1[i+1];
+		s2 += src0[i+2] * src1[i+2];
+		s3 += src0[i+3] * src1[i+3];
 	}
 	switch( count - i ) {
 		NODEFAULT;
-		case 3: s0 += src0[i+2] * src1[i+2];
+		case 4: s3 += src0[i+3] * src1[i+3];
+		case 3: s2 += src0[i+2] * src1[i+2];
 		case 2: s1 += src0[i+1] * src1[i+1];
-		case 1: s2 += src0[i+0] * src1[i+0];
+		case 1: s0 += src0[i+0] * src1[i+0];
 		case 0:
 			break;
 	}
@@ -2054,7 +2055,12 @@ bool idLCP_Square::Solve( const idMatX &o_m, idVecX &o_x, const idVecX &o_b, con
 	}
 
 	// tells if a variable is at the low boundary, high boundary or inbetween
-	side = (int *) _alloca16( m.GetNumRows() * sizeof( int ) );
+	// side is used by SIMD code so alloc in multiples of four and initialize
+	int sideCount = ( m.GetNumRows() + 3 ) & ~3;
+	side = (int *) _alloca16( sideCount * sizeof( int ) );
+	for ( int i = 0; i < sideCount; i++ ) {
+		side[i] = 0;
+	}
 
 	// index to keep track of the permutation
 	permuted = (int *) _alloca16( m.GetNumRows() * sizeof( int ) );
@@ -2319,6 +2325,7 @@ private:
 	int *			side;				// tells if a variable is at the low boundary = -1, high boundary = 1 or inbetween = 0
 	int *			permuted;			// index to keep track of the permutation
 	bool			padded;				// set to true if the rows of the initial matrix are 16 byte padded
+	bool			factorFailed;		// set when a factorization update fails
 
 	bool			FactorClamped();
 	void			SolveClamped( idVecX &x, const float *b );
@@ -2432,8 +2439,8 @@ void idLCP_Symmetric::AddClamped( int r, bool useSolveCache ) {
 	float d = rowPtrs[numClamped][numClamped] - dot;
 
 	if ( fabs( d ) < idMath::FLT_SMALLEST_NON_DENORMAL ) {
-		idLib::Printf( "idLCP_Symmetric::AddClamped: updating factorization failed\n" );
-		d = idMath::FLT_SMALLEST_NON_DENORMAL;
+		factorFailed = true;
+		d = LCP_BOUND_EPSILON;
 	}
 
 	clamped[numClamped][numClamped] = d;
@@ -2476,8 +2483,8 @@ void idLCP_Symmetric::RemoveClamped( int r ) {
 		if ( numClamped == 1 ) {
 			float diag = rowPtrs[0][0];
 			if ( fabs( diag ) < idMath::FLT_SMALLEST_NON_DENORMAL ) {
-				idLib::Printf( "idLCP_Symmetric::RemoveClamped: updating factorization failed\n" );
-				diag = idMath::FLT_SMALLEST_NON_DENORMAL;
+				factorFailed = true;
+				diag = LCP_BOUND_EPSILON;
 			}
 			clamped[0][0] = diag;
 			diagonal[0] = 1.0f / diag;
@@ -2508,8 +2515,8 @@ void idLCP_Symmetric::RemoveClamped( int r ) {
 			float dot = BigDotProduct( clamped[r], v, r );
 			float diag = rowPtrs[r][r] - dot;
 			if ( fabs( diag ) < idMath::FLT_SMALLEST_NON_DENORMAL ) {
-				idLib::Printf( "idLCP_Symmetric::RemoveClamped: updating factorization failed\n" );
-				diag = idMath::FLT_SMALLEST_NON_DENORMAL;
+				factorFailed = true;
+				diag = LCP_BOUND_EPSILON;
 			}
 			clamped[r][r] = diag;
 			diagonal[r] = 1.0f / diag;
@@ -2559,8 +2566,8 @@ void idLCP_Symmetric::RemoveClamped( int r ) {
 		float newDiag = diag + alpha1 * p1 * p1;
 
 		if ( fabs( newDiag ) < idMath::FLT_SMALLEST_NON_DENORMAL ) {
-			idLib::Printf( "idLCP_Symmetric::RemoveClamped: updating factorization failed\n" );
-			newDiag = idMath::FLT_SMALLEST_NON_DENORMAL;
+			factorFailed = true;
+			newDiag = LCP_BOUND_EPSILON;
 		}
 
 		alpha1 /= newDiag;
@@ -2572,8 +2579,8 @@ void idLCP_Symmetric::RemoveClamped( int r ) {
 		newDiag = diag + alpha2 * p2 * p2;
 
 		if ( fabs( newDiag ) < idMath::FLT_SMALLEST_NON_DENORMAL ) {
-			idLib::Printf( "idLCP_Symmetric::RemoveClamped: updating factorization failed\n" );
-			newDiag = idMath::FLT_SMALLEST_NON_DENORMAL;
+			factorFailed = true;
+			newDiag = LCP_BOUND_EPSILON;
 		}
 
 		clamped[i][i] = newDiag;
@@ -2723,6 +2730,7 @@ bool idLCP_Symmetric::Solve( const idMatX &o_m, idVecX &o_x, const idVecX &o_b, 
 
 	// we override the const on o_m here but on exit the matrix is unchanged
 	m.SetData( o_m.GetNumRows(), o_m.GetNumColumns(), const_cast< float * >( o_m[0] ) );
+	factorFailed = false;
 	f.Zero();
 	a.Zero();
 	b = o_b;
@@ -2736,7 +2744,12 @@ bool idLCP_Symmetric::Solve( const idMatX &o_m, idVecX &o_x, const idVecX &o_b, 
 	}
 
 	// tells if a variable is at the low boundary, high boundary or inbetween
-	side = (int *) _alloca16( m.GetNumRows() * sizeof( int ) );
+	// side is used by SIMD code so alloc in multiples of four and initialize
+	int sideCount = ( m.GetNumRows() + 3 ) & ~3;
+	side = (int *) _alloca16( sideCount * sizeof( int ) );
+	for ( int i = 0; i < sideCount; i++ ) {
+		side[i] = 0;
+	}
 
 	// index to keep track of the permutation
 	permuted = (int *) _alloca16( m.GetNumRows() * sizeof( int ) );
@@ -2842,6 +2855,7 @@ bool idLCP_Symmetric::Solve( const idMatX &o_m, idVecX &o_x, const idVecX &o_b, 
 		if ( idMath::Fabs( a[i] ) <= LCP_ACCEL_EPSILON ) {
 			side[i] = 0;
 			AddClamped( i, false );
+			if ( factorFailed ) return false;
 			continue;
 		}
 
@@ -2895,15 +2909,18 @@ bool idLCP_Symmetric::Solve( const idMatX &o_m, idVecX &o_x, const idVecX &o_b, 
 			if ( limitSide == 0 ) {
 				a[limit] = 0.0f;
 				AddClamped( limit, ( limit == i ) );
+				if ( factorFailed ) return false;
 			} else if ( limitSide == -1 ) {
 				f[limit] = lo[limit];
 				if ( limit != i ) {
 					RemoveClamped( limit );
+					if ( factorFailed ) return false;
 				}
 			} else if ( limitSide == 1 ) {
 				f[limit] = hi[limit];
 				if ( limit != i ) {
 					RemoveClamped( limit );
+					if ( factorFailed ) return false;
 				}
 			}
 

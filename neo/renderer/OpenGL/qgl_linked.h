@@ -2,9 +2,9 @@
 ===========================================================================
 
 Doom 3 BFG Edition GPL Source Code
-Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company. 
+Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
 
-This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").  
+This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
 Doom 3 BFG Edition Source Code is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -26,14 +26,28 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+// The engine calls GL through the qgl* names of the original "hardlink" build.
+// glad already resolves every entry point, so map them straight onto the gl* ones.
+
 #define qglAccum glAccum
+#define qglActiveTextureARB glActiveTextureARB
 #define qglAlphaFunc glAlphaFunc
 #define qglAreTexturesResident glAreTexturesResident
 #define qglArrayElement glArrayElement
+#define qglAttachShader glAttachShader
 #define qglBegin glBegin
+#define qglBeginQueryARB glBeginQueryARB
+#define qglBindAttribLocation glBindAttribLocation
+#define qglBindBufferARB glBindBufferARB
+#define qglBindBufferRange glBindBufferRange
+#define qglBindMultiTextureEXT glBindMultiTextureEXT
+#define qglBindProgramARB glBindProgramARB
 #define qglBindTexture glBindTexture
+#define qglBindVertexArray glBindVertexArray
 #define qglBitmap glBitmap
 #define qglBlendFunc glBlendFunc
+#define qglBufferDataARB glBufferDataARB
+#define qglBufferSubDataARB glBufferSubDataARB
 #define qglCallList glCallList
 #define qglCallLists glCallLists
 #define qglClear glClear
@@ -42,6 +56,8 @@ If you have questions concerning this license or the applicable additional terms
 #define qglClearDepth glClearDepth
 #define qglClearIndex glClearIndex
 #define qglClearStencil glClearStencil
+#define qglClientActiveTextureARB glClientActiveTextureARB
+#define qglClientWaitSync glClientWaitSync
 #define qglClipPlane glClipPlane
 #define qglColor3b glColor3b
 #define qglColor3bv glColor3bv
@@ -78,30 +94,51 @@ If you have questions concerning this license or the applicable additional terms
 #define qglColorMask glColorMask
 #define qglColorMaterial glColorMaterial
 #define qglColorPointer glColorPointer
+#define qglCompileShader glCompileShader
+#define qglCompressedTexImage2DARB glCompressedTexImage2DARB
+#define qglCompressedTexSubImage2DARB glCompressedTexSubImage2DARB
 #define qglCopyPixels glCopyPixels
 #define qglCopyTexImage1D glCopyTexImage1D
 #define qglCopyTexImage2D glCopyTexImage2D
 #define qglCopyTexSubImage1D glCopyTexSubImage1D
 #define qglCopyTexSubImage2D glCopyTexSubImage2D
+#define qglCreateProgram glCreateProgram
+#define qglCreateShader glCreateShader
 #define qglCullFace glCullFace
+#define qglDebugMessageCallbackARB glDebugMessageCallbackARB
+#define qglDebugMessageControlARB glDebugMessageControlARB
+#define qglDebugMessageInsertARB glDebugMessageInsertARB
+#define qglDeleteBuffersARB glDeleteBuffersARB
 #define qglDeleteLists glDeleteLists
+#define qglDeleteProgram glDeleteProgram
+#define qglDeleteProgramsARB glDeleteProgramsARB
+#define qglDeleteQueriesARB glDeleteQueriesARB
+#define qglDeleteShader glDeleteShader
+#define qglDeleteSync glDeleteSync
 #define qglDeleteTextures glDeleteTextures
+#define qglDeleteVertexArrays glDeleteVertexArrays
+#define qglDepthBoundsEXT glDepthBoundsEXT
 #define qglDepthFunc glDepthFunc
 #define qglDepthMask glDepthMask
 #define qglDepthRange glDepthRange
+#define qglDetachShader glDetachShader
 #define qglDisable glDisable
 #define qglDisableClientState glDisableClientState
+#define qglDisableVertexAttribArrayARB glDisableVertexAttribArrayARB
 #define qglDrawArrays glDrawArrays
-#define qglDrawBuffer glDrawBuffer
+#define qglDrawBuffer GL_DrawBuffer
 #define qglDrawElements glDrawElements
+#define qglDrawElementsBaseVertex glDrawElementsBaseVertex
 #define qglDrawPixels glDrawPixels
 #define qglEdgeFlag glEdgeFlag
 #define qglEdgeFlagPointer glEdgeFlagPointer
 #define qglEdgeFlagv glEdgeFlagv
 #define qglEnable glEnable
 #define qglEnableClientState glEnableClientState
+#define qglEnableVertexAttribArrayARB glEnableVertexAttribArrayARB
 #define qglEnd glEnd
 #define qglEndList glEndList
+#define qglEndQueryARB glEndQueryARB
 #define qglEvalCoord1d glEvalCoord1d
 #define qglEvalCoord1dv glEvalCoord1dv
 #define qglEvalCoord1f glEvalCoord1f
@@ -115,6 +152,7 @@ If you have questions concerning this license or the applicable additional terms
 #define qglEvalPoint1 glEvalPoint1
 #define qglEvalPoint2 glEvalPoint2
 #define qglFeedbackBuffer glFeedbackBuffer
+#define qglFenceSync glFenceSync
 #define qglFinish glFinish
 #define qglFlush glFlush
 #define qglFogf glFogf
@@ -123,10 +161,19 @@ If you have questions concerning this license or the applicable additional terms
 #define qglFogiv glFogiv
 #define qglFrontFace glFrontFace
 #define qglFrustum glFrustum
+#define qglGenBuffersARB glGenBuffersARB
 #define qglGenLists glGenLists
+#define qglGenProgramsARB glGenProgramsARB
+#define qglGenQueriesARB glGenQueriesARB
 #define qglGenTextures glGenTextures
+#define qglGenVertexArrays glGenVertexArrays
 #define qglGetBooleanv glGetBooleanv
+#define qglGetBufferParameterivARB glGetBufferParameterivARB
+#define qglGetBufferPointervARB glGetBufferPointervARB
+#define qglGetBufferSubDataARB glGetBufferSubDataARB
 #define qglGetClipPlane glGetClipPlane
+#define qglGetCompressedTexImageARB glGetCompressedTexImageARB
+#define qglGetDebugMessageLogARB glGetDebugMessageLogARB
 #define qglGetDoublev glGetDoublev
 #define qglGetError glGetError
 #define qglGetFloatv glGetFloatv
@@ -143,9 +190,18 @@ If you have questions concerning this license or the applicable additional terms
 #define qglGetPixelMapusv glGetPixelMapusv
 #define qglGetPointerv glGetPointerv
 #define qglGetPolygonStipple glGetPolygonStipple
+#define qglGetProgramInfoLog glGetProgramInfoLog
+#define qglGetProgramiv glGetProgramiv
+#define qglGetQueryivARB glGetQueryivARB
+#define qglGetQueryObjectivARB glGetQueryObjectivARB
+#define qglGetQueryObjectui64vEXT glGetQueryObjectui64vEXT
+#define qglGetQueryObjectuivARB glGetQueryObjectuivARB
+#define qglGetShaderInfoLog glGetShaderInfoLog
+#define qglGetShaderiv glGetShaderiv
 #define qglGetString glGetString
-#define qglGetTexEnviv glGetTexEnviv
+#define qglGetStringi glGetStringi
 #define qglGetTexEnvfv glGetTexEnvfv
+#define qglGetTexEnviv glGetTexEnviv
 #define qglGetTexGendv glGetTexGendv
 #define qglGetTexGenfv glGetTexGenfv
 #define qglGetTexGeniv glGetTexGeniv
@@ -154,34 +210,40 @@ If you have questions concerning this license or the applicable additional terms
 #define qglGetTexLevelParameteriv glGetTexLevelParameteriv
 #define qglGetTexParameterfv glGetTexParameterfv
 #define qglGetTexParameteriv glGetTexParameteriv
+#define qglGetUniformBlockIndex glGetUniformBlockIndex
+#define qglGetUniformLocation glGetUniformLocation
 #define qglHint glHint
-#define qglIndexMask glIndexMask
-#define qglIndexPointer glIndexPointer
 #define qglIndexd glIndexd
 #define qglIndexdv glIndexdv
 #define qglIndexf glIndexf
 #define qglIndexfv glIndexfv
 #define qglIndexi glIndexi
 #define qglIndexiv glIndexiv
+#define qglIndexMask glIndexMask
+#define qglIndexPointer glIndexPointer
 #define qglIndexs glIndexs
 #define qglIndexsv glIndexsv
 #define qglIndexub glIndexub
 #define qglIndexubv glIndexubv
 #define qglInitNames glInitNames
 #define qglInterleavedArrays glInterleavedArrays
+#define qglIsBufferARB glIsBufferARB
 #define qglIsEnabled glIsEnabled
 #define qglIsList glIsList
+#define qglIsQueryARB glIsQueryARB
+#define qglIsSync glIsSync
 #define qglIsTexture glIsTexture
-#define qglLightModelf glLightModelf
-#define qglLightModelfv glLightModelfv
-#define qglLightModeli glLightModeli
-#define qglLightModeliv glLightModeliv
 #define qglLightf glLightf
 #define qglLightfv glLightfv
 #define qglLighti glLighti
 #define qglLightiv glLightiv
+#define qglLightModelf glLightModelf
+#define qglLightModelfv glLightModelfv
+#define qglLightModeli glLightModeli
+#define qglLightModeliv glLightModeliv
 #define qglLineStipple glLineStipple
 #define qglLineWidth glLineWidth
+#define qglLinkProgram glLinkProgram
 #define qglListBase glListBase
 #define qglLoadIdentity glLoadIdentity
 #define qglLoadMatrixd glLoadMatrixd
@@ -192,6 +254,8 @@ If you have questions concerning this license or the applicable additional terms
 #define qglMap1f glMap1f
 #define qglMap2d glMap2d
 #define qglMap2f glMap2f
+#define qglMapBufferARB glMapBufferARB
+#define qglMapBufferRange glMapBufferRange
 #define qglMapGrid1d glMapGrid1d
 #define qglMapGrid1f glMapGrid1f
 #define qglMapGrid2d glMapGrid2d
@@ -234,6 +298,10 @@ If you have questions concerning this license or the applicable additional terms
 #define qglPopMatrix glPopMatrix
 #define qglPopName glPopName
 #define qglPrioritizeTextures glPrioritizeTextures
+#define qglProgramEnvParameter4fvARB glProgramEnvParameter4fvARB
+#define qglProgramLocalParameter4fvARB glProgramLocalParameter4fvARB
+#define qglProgramParameteri glProgramParameteri
+#define qglProgramStringARB glProgramStringARB
 #define qglPushAttrib glPushAttrib
 #define qglPushClientAttrib glPushClientAttrib
 #define qglPushMatrix glPushMatrix
@@ -262,7 +330,7 @@ If you have questions concerning this license or the applicable additional terms
 #define qglRasterPos4iv glRasterPos4iv
 #define qglRasterPos4s glRasterPos4s
 #define qglRasterPos4sv glRasterPos4sv
-#define qglReadBuffer glReadBuffer
+#define qglReadBuffer GL_ReadBuffer
 #define qglReadPixels glReadPixels
 #define qglRectd glRectd
 #define qglRectdv glRectdv
@@ -280,9 +348,12 @@ If you have questions concerning this license or the applicable additional terms
 #define qglScissor glScissor
 #define qglSelectBuffer glSelectBuffer
 #define qglShadeModel glShadeModel
+#define qglShaderSource glShaderSource
 #define qglStencilFunc glStencilFunc
+#define qglStencilFuncSeparate glStencilFuncSeparate
 #define qglStencilMask glStencilMask
 #define qglStencilOp glStencilOp
+#define qglStencilOpSeparate glStencilOpSeparate
 #define qglTexCoord1d glTexCoord1d
 #define qglTexCoord1dv glTexCoord1dv
 #define qglTexCoord1f glTexCoord1f
@@ -316,10 +387,10 @@ If you have questions concerning this license or the applicable additional terms
 #define qglTexCoord4s glTexCoord4s
 #define qglTexCoord4sv glTexCoord4sv
 #define qglTexCoordPointer glTexCoordPointer
-#define	qglTexEnvf glTexEnvf
-#define	qglTexEnvfv glTexEnvfv
-#define	qglTexEnvi glTexEnvi
-#define	qglTexEnviv glTexEnviv
+#define qglTexEnvf glTexEnvf
+#define qglTexEnvfv glTexEnvfv
+#define qglTexEnvi glTexEnvi
+#define qglTexEnviv glTexEnviv
 #define qglTexGend glTexGend
 #define qglTexGendv glTexGendv
 #define qglTexGenf glTexGenf
@@ -336,6 +407,11 @@ If you have questions concerning this license or the applicable additional terms
 #define qglTexSubImage2D glTexSubImage2D
 #define qglTranslated glTranslated
 #define qglTranslatef glTranslatef
+#define qglUniform1i glUniform1i
+#define qglUniform4fv glUniform4fv
+#define qglUniformBlockBinding glUniformBlockBinding
+#define qglUnmapBufferARB glUnmapBufferARB
+#define qglUseProgram glUseProgram
 #define qglVertex2d glVertex2d
 #define qglVertex2dv glVertex2dv
 #define qglVertex2f glVertex2f
@@ -360,14 +436,6 @@ If you have questions concerning this license or the applicable additional terms
 #define qglVertex4iv glVertex4iv
 #define qglVertex4s glVertex4s
 #define qglVertex4sv glVertex4sv
+#define qglVertexAttribPointerARB glVertexAttribPointerARB
 #define qglVertexPointer glVertexPointer
 #define qglViewport glViewport
-
-#ifdef GLX_VERSION_1_1 // catch all for any GLX-aware situation
-#define qglXChooseVisual glXChooseVisual
-#define qglXCreateContext glXCreateContext
-#define qglXDestroyContext glXDestroyContext
-#define qglXMakeCurrent glXMakeCurrent
-#define qglXSwapBuffers glXSwapBuffers
-#define qglXGetProcAddressARB glXGetProcAddressARB
-#endif

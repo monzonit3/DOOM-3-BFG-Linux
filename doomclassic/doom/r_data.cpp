@@ -414,12 +414,15 @@ void R_InitTextures (void)
 
 		::g->s_numtextures = numtextures1 + numtextures2;
 
-		::g->s_textures = (texture_t**)DoomLib::Z_Malloc (::g->s_numtextures*4, PU_STATIC_SHARED, 0);
-		::g->s_texturecolumnlump = (short**)DoomLib::Z_Malloc (::g->s_numtextures*4, PU_STATIC_SHARED, 0);
-		::g->s_texturecolumnofs = (unsigned short**)DoomLib::Z_Malloc (::g->s_numtextures*4, PU_STATIC_SHARED, 0);
+		// RB: these are pointer arrays, so they have to be sized by the pointer
+		// size instead of the 4 bytes it happens to be on 32 bit targets
+		::g->s_textures = (texture_t**)DoomLib::Z_Malloc (::g->s_numtextures*sizeof(texture_t*), PU_STATIC_SHARED, 0);
+		::g->s_texturecolumnlump = (short**)DoomLib::Z_Malloc (::g->s_numtextures*sizeof(short*), PU_STATIC_SHARED, 0);
+		::g->s_texturecolumnofs = (unsigned short**)DoomLib::Z_Malloc (::g->s_numtextures*sizeof(unsigned short*), PU_STATIC_SHARED, 0);
+		// RB end
 		::g->s_texturewidthmask = (int*)DoomLib::Z_Malloc (::g->s_numtextures*4, PU_STATIC_SHARED, 0);
 		::g->s_textureheight = (fixed_t*)DoomLib::Z_Malloc (::g->s_numtextures*4, PU_STATIC_SHARED, 0);
-		::g->s_texturecomposite = (byte**)DoomLib::Z_Malloc (::g->s_numtextures*4, PU_STATIC_SHARED, 0);
+		::g->s_texturecomposite = (byte**)DoomLib::Z_Malloc (::g->s_numtextures*sizeof(byte*), PU_STATIC_SHARED, 0);
 		::g->s_texturecompositesize = (int*)DoomLib::Z_Malloc (::g->s_numtextures*4, PU_STATIC_SHARED, 0);
 
 		totalwidth = 0;
@@ -575,7 +578,7 @@ void R_InitColormaps (void)
     lump = W_GetNumForName("COLORMAP"); 
     length = W_LumpLength (lump) + 255; 
     ::g->colormaps = (lighttable_t*)DoomLib::Z_Malloc (length, PU_STATIC, 0); 
-    ::g->colormaps = (byte *)( ((int)::g->colormaps + 255)&~0xff); 
+    ::g->colormaps = (byte *)( ((intptr_t)::g->colormaps + 255)&~0xff); 
     W_ReadLump (lump,::g->colormaps); 
 }
 

@@ -153,6 +153,8 @@ void			GL_Color( float * color );
 void			GL_Color( float r, float g, float b );
 void			GL_Color( float r, float g, float b, float a );
 void			GL_SelectTexture( int unit );
+void			GL_DrawBuffer( GLenum mode );
+void			GL_ReadBuffer( GLenum mode );
 
 void			GL_Flush();		// flush the GPU command buffer
 void			GL_Finish();	// wait for the GPU to have executed all commands

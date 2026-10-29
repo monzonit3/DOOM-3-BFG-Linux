@@ -485,6 +485,8 @@ void idImage::CopyFramebuffer( int x, int y, int imageWidth, int imageHeight ) {
 
 	qglReadBuffer( GL_BACK );
 
+	GLimp_ResolveFramebuffer( false );
+
 	opts.width = imageWidth;
 	opts.height = imageHeight;
 	qglCopyTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, x, y, imageWidth, imageHeight, 0 );
@@ -506,6 +508,8 @@ CopyDepthbuffer
 */
 void idImage::CopyDepthbuffer( int x, int y, int imageWidth, int imageHeight ) {
 	qglBindTexture( ( opts.textureType == TT_CUBIC ) ? GL_TEXTURE_CUBE_MAP_EXT : GL_TEXTURE_2D, texnum );
+
+	GLimp_ResolveFramebuffer( true );
 
 	opts.width = imageWidth;
 	opts.height = imageHeight;

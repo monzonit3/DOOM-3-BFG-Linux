@@ -33,6 +33,7 @@ If you have questions concerning this license or the applicable additional terms
 extern idCVar s_noSound;
 
 #include "tr_local.h"
+#include "BinkCinematic.h"
 
 //===========================================
 
@@ -58,7 +59,7 @@ idCinematic::Alloc
 ==============
 */
 idCinematic * idCinematic::Alloc() {
-	return new idCinematic;
+	return R_AllocBinkCinematic();
 }
 
 /*

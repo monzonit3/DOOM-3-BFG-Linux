@@ -91,17 +91,19 @@ idEventDef::idEventDef( const char *command, const char *formatspec, char return
 	for( i = 0; i < numargs;i++ ) {
 		argOffset[ i ] = argsize;
 		switch( formatspec[ i ] ) {
+		// every script value occupies whole pointer sized slots on the local stack,
+		// so all of the argument sizes have to match the sizes of the script types
 		case D_EVENT_FLOAT :
 			bits |= 1 << i;
-			argsize += sizeof( float );
+			argsize += sizeof( intptr_t );
 			break;
 
 		case D_EVENT_INTEGER :
-			argsize += sizeof( int );
+			argsize += sizeof( intptr_t );
 			break;
 
 		case D_EVENT_VECTOR :
-			argsize += sizeof( idVec3 );
+			argsize += E_EVENT_SIZEOF_VEC;
 			break;
 
 		case D_EVENT_STRING :
@@ -109,11 +111,11 @@ idEventDef::idEventDef( const char *command, const char *formatspec, char return
 			break;
 
 		case D_EVENT_ENTITY :
-			argsize += sizeof( idEntityPtr<idEntity> );
+			argsize += sizeof( intptr_t );
 			break;
 
 		case D_EVENT_ENTITY_NULL :
-			argsize += sizeof( idEntityPtr<idEntity> );
+			argsize += sizeof( intptr_t );
 			break;
 
 		case D_EVENT_TRACE :
@@ -334,7 +336,7 @@ idEvent *idEvent::Alloc( const idEventDef *evdef, int numargs, va_list args ) {
 idEvent::CopyArgs
 ================
 */
-void idEvent::CopyArgs( const idEventDef *evdef, int numargs, va_list args, int data[ D_EVENT_MAXARGS ] ) {
+void idEvent::CopyArgs( const idEventDef *evdef, int numargs, va_list args, intptr_t data[ D_EVENT_MAXARGS ] ) {
 	int			i;
 	const char	*format;
 	idEventArg	*arg;
@@ -489,7 +491,7 @@ idEvent::ServiceEvents
 void idEvent::ServiceEvents() {
 	idEvent		*event;
 	int			num;
-	int			args[ D_EVENT_MAXARGS ];
+	intptr_t	args[ D_EVENT_MAXARGS ];
 	int			offset;
 	int			i;
 	int			numargs;
@@ -590,7 +592,7 @@ idEvent::ServiceFastEvents
 void idEvent::ServiceFastEvents() {
 	idEvent	*event;
 	int		num;
-	int			args[ D_EVENT_MAXARGS ];
+	intptr_t	args[ D_EVENT_MAXARGS ];
 	int			offset;
 	int			i;
 	int			numargs;
@@ -764,17 +766,17 @@ void idEvent::Save( idSaveGame *savefile ) {
 			switch( format[ i ] ) {
 				case D_EVENT_FLOAT :
 					savefile->WriteFloat( *reinterpret_cast<float *>( dataPtr ) );
-					size += sizeof( float );
+					size += sizeof( intptr_t );
 					break;
 				case D_EVENT_INTEGER :
 				case D_EVENT_ENTITY :
 				case D_EVENT_ENTITY_NULL :
 					savefile->WriteInt( *reinterpret_cast<int *>( dataPtr ) );
-					size += sizeof( int );
+					size += sizeof( intptr_t );
 					break;
 				case D_EVENT_VECTOR :
 					savefile->WriteVec3( *reinterpret_cast<idVec3 *>( dataPtr ) );
-					size += sizeof( idVec3 );
+					size += E_EVENT_SIZEOF_VEC;
 					break;
 				case D_EVENT_TRACE :
 					validTrace = *reinterpret_cast<bool *>( dataPtr );
@@ -873,17 +875,17 @@ void idEvent::Restore( idRestoreGame *savefile ) {
 				switch( format[ j ] ) {
 					case D_EVENT_FLOAT :
 						savefile->ReadFloat( *reinterpret_cast<float *>( dataPtr ) );
-						size += sizeof( float );
+						size += sizeof( intptr_t );
 						break;
 					case D_EVENT_INTEGER :
 					case D_EVENT_ENTITY :
 					case D_EVENT_ENTITY_NULL :
 						savefile->ReadInt( *reinterpret_cast<int *>( dataPtr ) );
-						size += sizeof( int );
+						size += sizeof( intptr_t );
 						break;
 					case D_EVENT_VECTOR :
 						savefile->ReadVec3( *reinterpret_cast<idVec3 *>( dataPtr ) );
-						size += sizeof( idVec3 );
+						size += E_EVENT_SIZEOF_VEC;
 						break;
 					case D_EVENT_TRACE :
 						savefile->ReadBool( *reinterpret_cast<bool *>( dataPtr ) );

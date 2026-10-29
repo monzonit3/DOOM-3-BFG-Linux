@@ -26,7 +26,7 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "../../idLib/precompiled.h"
+#include "../../idlib/precompiled.h"
 #include "../Game_local.h"
 
 
@@ -693,7 +693,7 @@ void idMenuHandler_Shell::SetupPCOptions() {
 				buttonWidget->SetDescription( "#str_01976" );
 			}
 		} else {
-#if !defined ( ID_RETAIL ) 
+#if defined( DOOM3_DEVELOPER_MODE ) 
 			navOptions.Append( "DEV" );	// DEV
 #endif
 			navOptions.Append( "#str_swf_campaign" );	// singleplayer
@@ -705,7 +705,7 @@ void idMenuHandler_Shell::SetupPCOptions() {
 			
 			idMenuWidget_MenuButton * buttonWidget = NULL;
 			int index = 0;
-#if !defined ( ID_RETAIL ) 
+#if defined( DOOM3_DEVELOPER_MODE ) 
 			buttonWidget = dynamic_cast< idMenuWidget_MenuButton * >( &menuBar->GetChildByIndex( index ) );
 			if ( buttonWidget != NULL ) {
 				buttonWidget->ClearEventActions();

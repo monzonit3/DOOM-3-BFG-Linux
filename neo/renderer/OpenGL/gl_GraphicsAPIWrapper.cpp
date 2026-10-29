@@ -53,6 +53,50 @@ void GL_SelectTexture( int unit ) {
 
 /*
 ====================
+GL_TranslateBufferTarget
+====================
+*/
+static GLenum GL_TranslateBufferTarget( GLenum mode ) {
+	if ( !glConfig.logicalScaling ) {
+		return mode;
+	}
+
+	switch( mode ) {
+		case GL_FRONT:
+		case GL_BACK:
+		case GL_LEFT:
+		case GL_RIGHT:
+		case GL_FRONT_LEFT:
+		case GL_FRONT_RIGHT:
+		case GL_BACK_LEFT:
+		case GL_BACK_RIGHT:
+		case GL_FRONT_AND_BACK:
+			return GL_COLOR_ATTACHMENT0;
+		default:
+			return mode;
+	}
+}
+
+/*
+====================
+GL_DrawBuffer
+====================
+*/
+void GL_DrawBuffer( GLenum mode ) {
+	glDrawBuffer( GL_TranslateBufferTarget( mode ) );
+}
+
+/*
+====================
+GL_ReadBuffer
+====================
+*/
+void GL_ReadBuffer( GLenum mode ) {
+	glReadBuffer( GL_TranslateBufferTarget( mode ) );
+}
+
+/*
+====================
 GL_Cull
 
 This handles the flipping needed when the view being

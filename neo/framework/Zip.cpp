@@ -1269,19 +1269,23 @@ idZipBuilder::GetFileTime
 ========================
 */
 bool idZipBuilder::GetFileTime( const idStr &filename, unsigned long *dostime ) const {
-	{
-		FILETIME filetime;
-		WIN32_FIND_DATA fileData;
-		HANDLE			findHandle = FindFirstFile( filename.c_str(), &fileData );
-		if ( findHandle != INVALID_HANDLE_VALUE ) { 
-			FileTimeToLocalFileTime( &(fileData.ftLastWriteTime), &filetime );
-			FileTimeToDosDateTime( &filetime, ((LPWORD)dostime) + 1, ((LPWORD)dostime) + 0 );
-			FindClose( findHandle );
-			return true;
-		}
-		FindClose( findHandle );
+	SDL_PathInfo info;
+	if ( !SDL_GetPathInfo( filename.c_str(), &info ) ) {
+		return false;
 	}
-	return false;
+
+	// zip entries store the modification time as a packed DOS date and time in local time
+	SDL_DateTime dt;
+	if ( !SDL_TimeToDateTime( info.modify_time, &dt, true ) ) {
+		return false;
+	}
+
+	const unsigned short dosDate = ( unsigned short )( ( ( dt.year - 1980 ) << 9 ) | ( dt.month << 5 ) | dt.day );
+	const unsigned short dosTime = ( unsigned short )( ( dt.hour << 11 ) | ( dt.minute << 5 ) | ( dt.second / 2 ) );
+
+	( ( unsigned short * )dostime )[ 1 ] = dosDate;
+	( ( unsigned short * )dostime )[ 0 ] = dosTime;
+	return true;
 }
 
 /*

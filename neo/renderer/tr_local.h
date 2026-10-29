@@ -1012,6 +1012,9 @@ struct glimpParms_t {
 	int			multiSamples;
 };
 
+void		GLimp_PreInit();
+// initializes the platform windowing layer, required before R_GetModeListForDisplay()
+
 bool		GLimp_Init( glimpParms_t parms );
 // If the desired mode can't be set satisfactorily, false will be returned.
 // If succesful, sets glConfig.nativeScreenWidth, glConfig.nativeScreenHeight, and glConfig.pixelAspect
@@ -1053,6 +1056,10 @@ void		GLimp_DeactivateContext();
 // being spent inside OpenGL.
 
 void		GLimp_EnableLogging( bool enable );
+
+void		GLimp_ResolveFramebuffer( bool resolveDepth );
+// Resolves a multisampled offscreen render target so that its contents can be
+// read back with glCopyTexImage2D / glReadPixels.
 
 
 /*

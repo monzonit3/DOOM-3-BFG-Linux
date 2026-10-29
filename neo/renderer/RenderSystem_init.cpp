@@ -32,7 +32,6 @@ If you have questions concerning this license or the applicable additional terms
 #include "tr_local.h"
 
 // Vista OpenGL wrapper check
-#include "../sys/win32/win_local.h"
 
 // DeviceContext bypasses RenderSystem to work directly with this
 idGuiModel * tr_guiModel;
@@ -47,7 +46,7 @@ idCVar r_skipIntelWorkarounds( "r_skipIntelWorkarounds", "0", CVAR_RENDERER | CV
 idCVar r_multiSamples( "r_multiSamples", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "number of antialiasing samples" );
 idCVar r_vidMode( "r_vidMode", "0", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_INTEGER, "fullscreen video mode number" );
 idCVar r_displayRefresh( "r_displayRefresh", "0", CVAR_RENDERER | CVAR_INTEGER | CVAR_NOCHEAT, "optional display refresh rate option for vid mode", 0.0f, 240.0f );
-idCVar r_fullscreen( "r_fullscreen", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "0 = windowed, 1 = full screen on monitor 1, 2 = full screen on monitor 2, etc" );
+idCVar r_fullscreen( "r_fullscreen", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "0 = windowed, 1 = full screen on monitor 1, 2 = full screen on monitor 2, etc" );
 idCVar r_customWidth( "r_customWidth", "1280", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "custom screen width. set r_vidMode to -1 to activate" );
 idCVar r_customHeight( "r_customHeight", "720", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "custom screen height. set r_vidMode to -1 to activate" );
 idCVar r_windowX( "r_windowX", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "Non-fullscreen parameter" );
@@ -193,124 +192,6 @@ idCVar stereoRender_swapEyes( "stereoRender_swapEyes", "0", CVAR_BOOL | CVAR_ARC
 idCVar stereoRender_deGhost( "stereoRender_deGhost", "0.05", CVAR_FLOAT | CVAR_ARCHIVE, "subtract from opposite eye to reduce ghosting" );
 
 
-// GL_ARB_multitexture
-PFNGLACTIVETEXTUREPROC					qglActiveTextureARB;
-PFNGLCLIENTACTIVETEXTUREPROC			qglClientActiveTextureARB;
-
-// GL_EXT_direct_state_access
-PFNGLBINDMULTITEXTUREEXTPROC			qglBindMultiTextureEXT;
-
-// GL_ARB_texture_compression
-PFNGLCOMPRESSEDTEXIMAGE2DARBPROC		qglCompressedTexImage2DARB;
-PFNGLCOMPRESSEDTEXSUBIMAGE2DARBPROC		qglCompressedTexSubImage2DARB;
-PFNGLGETCOMPRESSEDTEXIMAGEARBPROC		qglGetCompressedTexImageARB;
-
-// GL_ARB_vertex_buffer_object
-PFNGLBINDBUFFERARBPROC					qglBindBufferARB;
-PFNGLBINDBUFFERRANGEPROC				qglBindBufferRange;
-PFNGLDELETEBUFFERSARBPROC				qglDeleteBuffersARB;
-PFNGLGENBUFFERSARBPROC					qglGenBuffersARB;
-PFNGLISBUFFERARBPROC					qglIsBufferARB;
-PFNGLBUFFERDATAARBPROC					qglBufferDataARB;
-PFNGLBUFFERSUBDATAARBPROC				qglBufferSubDataARB;
-PFNGLGETBUFFERSUBDATAARBPROC			qglGetBufferSubDataARB;
-PFNGLMAPBUFFERARBPROC					qglMapBufferARB;
-PFNGLUNMAPBUFFERARBPROC					qglUnmapBufferARB;
-PFNGLGETBUFFERPARAMETERIVARBPROC		qglGetBufferParameterivARB;
-PFNGLGETBUFFERPOINTERVARBPROC			qglGetBufferPointervARB;
-
-// GL_ARB_map_buffer_range
-PFNGLMAPBUFFERRANGEPROC					qglMapBufferRange;
-
-// GL_ARB_draw_elements_base_vertex
-PFNGLDRAWELEMENTSBASEVERTEXPROC  		qglDrawElementsBaseVertex;
-
-// GL_ARB_vertex_array_object
-PFNGLGENVERTEXARRAYSPROC				qglGenVertexArrays;
-PFNGLBINDVERTEXARRAYPROC				qglBindVertexArray;
-PFNGLDELETEVERTEXARRAYSPROC				qglDeleteVertexArrays;
-
-// GL_ARB_vertex_program / GL_ARB_fragment_program
-PFNGLVERTEXATTRIBPOINTERARBPROC			qglVertexAttribPointerARB;
-PFNGLENABLEVERTEXATTRIBARRAYARBPROC		qglEnableVertexAttribArrayARB;
-PFNGLDISABLEVERTEXATTRIBARRAYARBPROC	qglDisableVertexAttribArrayARB;
-PFNGLPROGRAMSTRINGARBPROC				qglProgramStringARB;
-PFNGLBINDPROGRAMARBPROC					qglBindProgramARB;
-PFNGLGENPROGRAMSARBPROC					qglGenProgramsARB;
-PFNGLDELETEPROGRAMSARBPROC				qglDeleteProgramsARB;
-PFNGLPROGRAMENVPARAMETER4FVARBPROC		qglProgramEnvParameter4fvARB;
-PFNGLPROGRAMLOCALPARAMETER4FVARBPROC	qglProgramLocalParameter4fvARB;
-
-// GLSL / OpenGL 2.0
-PFNGLCREATESHADERPROC					qglCreateShader;
-PFNGLDELETESHADERPROC					qglDeleteShader;
-PFNGLSHADERSOURCEPROC					qglShaderSource;
-PFNGLCOMPILESHADERPROC					qglCompileShader;
-PFNGLGETSHADERIVPROC					qglGetShaderiv;
-PFNGLGETSHADERINFOLOGPROC				qglGetShaderInfoLog;
-PFNGLCREATEPROGRAMPROC					qglCreateProgram;
-PFNGLDELETEPROGRAMPROC					qglDeleteProgram;
-PFNGLATTACHSHADERPROC					qglAttachShader;
-PFNGLDETACHSHADERPROC					qglDetachShader;
-PFNGLLINKPROGRAMPROC					qglLinkProgram;
-PFNGLUSEPROGRAMPROC						qglUseProgram;
-PFNGLGETPROGRAMIVPROC					qglGetProgramiv;
-PFNGLGETPROGRAMINFOLOGPROC				qglGetProgramInfoLog;
-PFNGLPROGRAMPARAMETERIPROC				qglProgramParameteri;
-PFNGLBINDATTRIBLOCATIONPROC				qglBindAttribLocation;
-PFNGLGETUNIFORMLOCATIONPROC				qglGetUniformLocation;
-PFNGLUNIFORM1IPROC						qglUniform1i;
-PFNGLUNIFORM4FVPROC						qglUniform4fv;
-
-// GL_ARB_uniform_buffer_object
-PFNGLGETUNIFORMBLOCKINDEXPROC			qglGetUniformBlockIndex;
-PFNGLUNIFORMBLOCKBINDINGPROC			qglUniformBlockBinding;
-
-// GL_ATI_separate_stencil / OpenGL 2.0
-PFNGLSTENCILOPSEPARATEATIPROC			qglStencilOpSeparate;
-PFNGLSTENCILFUNCSEPARATEATIPROC			qglStencilFuncSeparate;
-
-// GL_EXT_depth_bounds_test
-PFNGLDEPTHBOUNDSEXTPROC                 qglDepthBoundsEXT;
-
-// GL_ARB_sync
-PFNGLFENCESYNCPROC						qglFenceSync;
-PFNGLISSYNCPROC							qglIsSync;
-PFNGLCLIENTWAITSYNCPROC					qglClientWaitSync;
-PFNGLDELETESYNCPROC						qglDeleteSync;
-
-// GL_ARB_occlusion_query
-PFNGLGENQUERIESARBPROC					qglGenQueriesARB;
-PFNGLDELETEQUERIESARBPROC				qglDeleteQueriesARB;
-PFNGLISQUERYARBPROC						qglIsQueryARB;
-PFNGLBEGINQUERYARBPROC					qglBeginQueryARB;
-PFNGLENDQUERYARBPROC					qglEndQueryARB;
-PFNGLGETQUERYIVARBPROC					qglGetQueryivARB;
-PFNGLGETQUERYOBJECTIVARBPROC			qglGetQueryObjectivARB;
-PFNGLGETQUERYOBJECTUIVARBPROC			qglGetQueryObjectuivARB;
-
-// GL_ARB_timer_query / GL_EXT_timer_query
-PFNGLGETQUERYOBJECTUI64VEXTPROC			qglGetQueryObjectui64vEXT;
-
-// GL_ARB_debug_output
-PFNGLDEBUGMESSAGECONTROLARBPROC			qglDebugMessageControlARB;
-PFNGLDEBUGMESSAGEINSERTARBPROC			qglDebugMessageInsertARB;
-PFNGLDEBUGMESSAGECALLBACKARBPROC		qglDebugMessageCallbackARB;
-PFNGLGETDEBUGMESSAGELOGARBPROC			qglGetDebugMessageLogARB;
-
-PFNGLGETSTRINGIPROC						qglGetStringi;
-
-/*
-========================
-glBindMultiTextureEXT
-
-As of 2011/09/16 the Intel drivers for "Sandy Bridge" and "Ivy Bridge" integrated graphics do not support this extension.
-========================
-*/
-void APIENTRY glBindMultiTextureEXT( GLenum texunit, GLenum target, GLuint texture ) {
-	qglActiveTextureARB( texunit );
-	qglBindTexture( target, texture );
-}
 
 
 /*
@@ -337,10 +218,9 @@ For ARB_debug_output
 ========================
 */
 static void CALLBACK DebugCallback(unsigned int source, unsigned int type,
-								   unsigned int id, unsigned int severity, int length, const char * message, void * userParam) {
+								   unsigned int id, unsigned int severity, int length, const char * message, const void * userParam) {
 	// it probably isn't safe to do an idLib::Printf at this point
-	OutputDebugString( message );
-	OutputDebugString( "\n" );
+	SDL_Log( "%s\n", message );
 }
 
 /*
@@ -364,27 +244,21 @@ static void R_CheckPortableExtensions() {
 	}
 
 	// GL_ARB_multitexture
-	glConfig.multitextureAvailable = R_CheckExtension( "GL_ARB_multitexture" );
+	// multitexturing is core since OpenGL 1.3, newer drivers no longer advertise the extension
+	glConfig.multitextureAvailable = ( glConfig.glVersion >= 1.3 || R_CheckExtension( "GL_ARB_multitexture" ) );
 	if ( glConfig.multitextureAvailable ) {
-		qglActiveTextureARB = (void(APIENTRY *)(GLenum))GLimp_ExtensionPointer( "glActiveTextureARB" );
-		qglClientActiveTextureARB = (void(APIENTRY *)(GLenum))GLimp_ExtensionPointer( "glClientActiveTextureARB" );
 	}
 
 	// GL_EXT_direct_state_access
 	glConfig.directStateAccess = R_CheckExtension( "GL_EXT_direct_state_access" );
 	if ( glConfig.directStateAccess ) {
-		qglBindMultiTextureEXT = (PFNGLBINDMULTITEXTUREEXTPROC)GLimp_ExtensionPointer( "glBindMultiTextureEXT" );
 	} else {
-		qglBindMultiTextureEXT = glBindMultiTextureEXT;
 	}
 
 	// GL_ARB_texture_compression + GL_S3_s3tc
 	// DRI drivers may have GL_ARB_texture_compression but no GL_EXT_texture_compression_s3tc
 	glConfig.textureCompressionAvailable = R_CheckExtension( "GL_ARB_texture_compression" ) && R_CheckExtension( "GL_EXT_texture_compression_s3tc" );
 	if ( glConfig.textureCompressionAvailable ) {
-		qglCompressedTexImage2DARB = (PFNGLCOMPRESSEDTEXIMAGE2DARBPROC)GLimp_ExtensionPointer( "glCompressedTexImage2DARB" );
-		qglCompressedTexSubImage2DARB = (PFNGLCOMPRESSEDTEXSUBIMAGE2DARBPROC)GLimp_ExtensionPointer( "glCompressedTexSubImage2DARB" );
-		qglGetCompressedTexImageARB = (PFNGLGETCOMPRESSEDTEXIMAGEARBPROC)GLimp_ExtensionPointer( "glGetCompressedTexImageARB" );
 	}
 
 	// GL_EXT_texture_filter_anisotropic
@@ -417,85 +291,39 @@ static void R_CheckPortableExtensions() {
 	// GL_ARB_vertex_buffer_object
 	glConfig.vertexBufferObjectAvailable = R_CheckExtension( "GL_ARB_vertex_buffer_object" );
 	if ( glConfig.vertexBufferObjectAvailable ) {
-		qglBindBufferARB = (PFNGLBINDBUFFERARBPROC)GLimp_ExtensionPointer( "glBindBufferARB" );
-		qglBindBufferRange = (PFNGLBINDBUFFERRANGEPROC)GLimp_ExtensionPointer( "glBindBufferRange" );
-		qglDeleteBuffersARB = (PFNGLDELETEBUFFERSARBPROC)GLimp_ExtensionPointer( "glDeleteBuffersARB" );
-		qglGenBuffersARB = (PFNGLGENBUFFERSARBPROC)GLimp_ExtensionPointer( "glGenBuffersARB" );
-		qglIsBufferARB = (PFNGLISBUFFERARBPROC)GLimp_ExtensionPointer( "glIsBufferARB" );
-		qglBufferDataARB = (PFNGLBUFFERDATAARBPROC)GLimp_ExtensionPointer( "glBufferDataARB" );
-		qglBufferSubDataARB = (PFNGLBUFFERSUBDATAARBPROC)GLimp_ExtensionPointer( "glBufferSubDataARB" );
-		qglGetBufferSubDataARB = (PFNGLGETBUFFERSUBDATAARBPROC)GLimp_ExtensionPointer( "glGetBufferSubDataARB" );
-		qglMapBufferARB = (PFNGLMAPBUFFERARBPROC)GLimp_ExtensionPointer( "glMapBufferARB" );
-		qglUnmapBufferARB = (PFNGLUNMAPBUFFERARBPROC)GLimp_ExtensionPointer( "glUnmapBufferARB" );
-		qglGetBufferParameterivARB = (PFNGLGETBUFFERPARAMETERIVARBPROC)GLimp_ExtensionPointer( "glGetBufferParameterivARB" );
-		qglGetBufferPointervARB = (PFNGLGETBUFFERPOINTERVARBPROC)GLimp_ExtensionPointer( "glGetBufferPointervARB" );
 	}
 
 	// GL_ARB_map_buffer_range, map a section of a buffer object's data store
 	glConfig.mapBufferRangeAvailable = R_CheckExtension( "GL_ARB_map_buffer_range" );
 	if ( glConfig.mapBufferRangeAvailable ) {
-		qglMapBufferRange = (PFNGLMAPBUFFERRANGEPROC)GLimp_ExtensionPointer( "glMapBufferRange" );
 	}
 
 	// GL_ARB_vertex_array_object
 	glConfig.vertexArrayObjectAvailable = R_CheckExtension( "GL_ARB_vertex_array_object" );
 	if ( glConfig.vertexArrayObjectAvailable ) {
-		qglGenVertexArrays = (PFNGLGENVERTEXARRAYSPROC)GLimp_ExtensionPointer( "glGenVertexArrays" );
-		qglBindVertexArray = (PFNGLBINDVERTEXARRAYPROC)GLimp_ExtensionPointer( "glBindVertexArray" );
-		qglDeleteVertexArrays = (PFNGLDELETEVERTEXARRAYSPROC)GLimp_ExtensionPointer( "glDeleteVertexArrays" );
 	}
 
 	// GL_ARB_draw_elements_base_vertex
 	glConfig.drawElementsBaseVertexAvailable = R_CheckExtension( "GL_ARB_draw_elements_base_vertex" );
 	if ( glConfig.drawElementsBaseVertexAvailable ) {
-		qglDrawElementsBaseVertex = (PFNGLDRAWELEMENTSBASEVERTEXPROC)GLimp_ExtensionPointer( "glDrawElementsBaseVertex" );
 	}
 
 	// GL_ARB_vertex_program / GL_ARB_fragment_program
+	// the renderer only uses GLSL, so ARB programs are optional and their absence is not fatal
 	glConfig.fragmentProgramAvailable = R_CheckExtension( "GL_ARB_fragment_program" );
-	if ( glConfig.fragmentProgramAvailable ) {
-		qglVertexAttribPointerARB = (PFNGLVERTEXATTRIBPOINTERARBPROC)GLimp_ExtensionPointer( "glVertexAttribPointerARB" );
-		qglEnableVertexAttribArrayARB = (PFNGLENABLEVERTEXATTRIBARRAYARBPROC)GLimp_ExtensionPointer( "glEnableVertexAttribArrayARB" );
-		qglDisableVertexAttribArrayARB = (PFNGLDISABLEVERTEXATTRIBARRAYARBPROC)GLimp_ExtensionPointer( "glDisableVertexAttribArrayARB" );
-		qglProgramStringARB = (PFNGLPROGRAMSTRINGARBPROC)GLimp_ExtensionPointer( "glProgramStringARB" );
-		qglBindProgramARB = (PFNGLBINDPROGRAMARBPROC)GLimp_ExtensionPointer( "glBindProgramARB" );
-		qglGenProgramsARB = (PFNGLGENPROGRAMSARBPROC)GLimp_ExtensionPointer( "glGenProgramsARB" );
-		qglDeleteProgramsARB = (PFNGLDELETEPROGRAMSARBPROC)GLimp_ExtensionPointer( "glDeleteProgramsARB" );
-		qglProgramEnvParameter4fvARB = (PFNGLPROGRAMENVPARAMETER4FVARBPROC)GLimp_ExtensionPointer( "glProgramEnvParameter4fvARB" );
-		qglProgramLocalParameter4fvARB = (PFNGLPROGRAMLOCALPARAMETER4FVARBPROC)GLimp_ExtensionPointer( "glProgramLocalParameter4fvARB" );
 
-		qglGetIntegerv( GL_MAX_TEXTURE_COORDS_ARB, (GLint *)&glConfig.maxTextureCoords );
-		qglGetIntegerv( GL_MAX_TEXTURE_IMAGE_UNITS_ARB, (GLint *)&glConfig.maxTextureImageUnits );
-	}
+	// ARB texture unit queries share their enum values with the core ones, so they are always valid
+	qglGetIntegerv( GL_MAX_TEXTURE_COORDS_ARB, (GLint *)&glConfig.maxTextureCoords );
+	qglGetIntegerv( GL_MAX_TEXTURE_IMAGE_UNITS_ARB, (GLint *)&glConfig.maxTextureImageUnits );
 
 	// GLSL, core in OpenGL > 2.0
 	glConfig.glslAvailable = ( glConfig.glVersion >= 2.0f );
 	if ( glConfig.glslAvailable ) {
-		qglCreateShader = (PFNGLCREATESHADERPROC)GLimp_ExtensionPointer( "glCreateShader" );
-		qglDeleteShader = (PFNGLDELETESHADERPROC)GLimp_ExtensionPointer( "glDeleteShader" );
-		qglShaderSource = (PFNGLSHADERSOURCEPROC)GLimp_ExtensionPointer( "glShaderSource" );
-		qglCompileShader = (PFNGLCOMPILESHADERPROC)GLimp_ExtensionPointer( "glCompileShader" );
-		qglGetShaderiv = (PFNGLGETSHADERIVPROC)GLimp_ExtensionPointer( "glGetShaderiv" );
-		qglGetShaderInfoLog = (PFNGLGETSHADERINFOLOGPROC)GLimp_ExtensionPointer( "glGetShaderInfoLog" );
-		qglCreateProgram = (PFNGLCREATEPROGRAMPROC)GLimp_ExtensionPointer( "glCreateProgram" );
-		qglDeleteProgram = (PFNGLDELETEPROGRAMPROC)GLimp_ExtensionPointer( "glDeleteProgram" );
-		qglAttachShader = (PFNGLATTACHSHADERPROC)GLimp_ExtensionPointer( "glAttachShader" );
-		qglDetachShader = (PFNGLDETACHSHADERPROC)GLimp_ExtensionPointer( "glDetachShader" );
-		qglLinkProgram = (PFNGLLINKPROGRAMPROC)GLimp_ExtensionPointer( "glLinkProgram" );
-		qglUseProgram = (PFNGLUSEPROGRAMPROC)GLimp_ExtensionPointer( "glUseProgram" );
-		qglGetProgramiv = (PFNGLGETPROGRAMIVPROC)GLimp_ExtensionPointer( "glGetProgramiv" );
-		qglGetProgramInfoLog = (PFNGLGETPROGRAMINFOLOGPROC)GLimp_ExtensionPointer( "glGetProgramInfoLog" );
-		qglBindAttribLocation = (PFNGLBINDATTRIBLOCATIONPROC)GLimp_ExtensionPointer( "glBindAttribLocation" );
-		qglGetUniformLocation = (PFNGLGETUNIFORMLOCATIONPROC)GLimp_ExtensionPointer( "glGetUniformLocation" );
-		qglUniform1i = (PFNGLUNIFORM1IPROC)GLimp_ExtensionPointer( "glUniform1i" );
-		qglUniform4fv = (PFNGLUNIFORM4FVPROC)GLimp_ExtensionPointer( "glUniform4fv" );
 	}
 
 	// GL_ARB_uniform_buffer_object
 	glConfig.uniformBufferAvailable = R_CheckExtension( "GL_ARB_uniform_buffer_object" );
 	if ( glConfig.uniformBufferAvailable ) {
-		qglGetUniformBlockIndex = (PFNGLGETUNIFORMBLOCKINDEXPROC)GLimp_ExtensionPointer( "glGetUniformBlockIndex" );
-		qglUniformBlockBinding = (PFNGLUNIFORMBLOCKBINDINGPROC)GLimp_ExtensionPointer( "glUniformBlockBinding" );
 
 		qglGetIntegerv( GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, (GLint *)&glConfig.uniformBufferOffsetAlignment );
 		if ( glConfig.uniformBufferOffsetAlignment < 256 ) {
@@ -506,14 +334,11 @@ static void R_CheckPortableExtensions() {
 	// ATI_separate_stencil / OpenGL 2.0 separate stencil
 	glConfig.twoSidedStencilAvailable = ( glConfig.glVersion >= 2.0f ) || R_CheckExtension( "GL_ATI_separate_stencil" );
 	if ( glConfig.twoSidedStencilAvailable ) {
-		qglStencilOpSeparate = (PFNGLSTENCILOPSEPARATEATIPROC)GLimp_ExtensionPointer( "glStencilOpSeparate" );
-		qglStencilFuncSeparate = (PFNGLSTENCILFUNCSEPARATEATIPROC)GLimp_ExtensionPointer( "glStencilFuncSeparate" );
 	}
 
 	// GL_EXT_depth_bounds_test
  	glConfig.depthBoundsTestAvailable = R_CheckExtension( "GL_EXT_depth_bounds_test" );
  	if ( glConfig.depthBoundsTestAvailable ) {
- 		qglDepthBoundsEXT = (PFNGLDEPTHBOUNDSEXTPROC)GLimp_ExtensionPointer( "glDepthBoundsEXT" );
  	}
 
 	// GL_ARB_sync
@@ -522,42 +347,24 @@ static void R_CheckPortableExtensions() {
 		// do not appear to work for the Intel HD 4000 graphics
 		( glConfig.vendor != VENDOR_INTEL || r_skipIntelWorkarounds.GetBool() );
 	if ( glConfig.syncAvailable ) {
-		qglFenceSync = (PFNGLFENCESYNCPROC)GLimp_ExtensionPointer( "glFenceSync" );
-		qglIsSync = (PFNGLISSYNCPROC)GLimp_ExtensionPointer( "glIsSync" );
-		qglClientWaitSync = (PFNGLCLIENTWAITSYNCPROC)GLimp_ExtensionPointer( "glClientWaitSync" );
-		qglDeleteSync = (PFNGLDELETESYNCPROC)GLimp_ExtensionPointer( "glDeleteSync" );
 	}
 
 	// GL_ARB_occlusion_query
 	glConfig.occlusionQueryAvailable = R_CheckExtension( "GL_ARB_occlusion_query" );
 	if ( glConfig.occlusionQueryAvailable ) {
 		// defined in GL_ARB_occlusion_query, which is required for GL_EXT_timer_query
-		qglGenQueriesARB = (PFNGLGENQUERIESARBPROC)GLimp_ExtensionPointer( "glGenQueriesARB" );
-		qglDeleteQueriesARB = (PFNGLDELETEQUERIESARBPROC)GLimp_ExtensionPointer( "glDeleteQueriesARB" );
-		qglIsQueryARB = (PFNGLISQUERYARBPROC)GLimp_ExtensionPointer( "glIsQueryARB" );
-		qglBeginQueryARB = (PFNGLBEGINQUERYARBPROC)GLimp_ExtensionPointer( "glBeginQueryARB" );
-		qglEndQueryARB = (PFNGLENDQUERYARBPROC)GLimp_ExtensionPointer( "glEndQueryARB" );
-		qglGetQueryivARB = (PFNGLGETQUERYIVARBPROC)GLimp_ExtensionPointer( "glGetQueryivARB" );
-		qglGetQueryObjectivARB = (PFNGLGETQUERYOBJECTIVARBPROC)GLimp_ExtensionPointer( "glGetQueryObjectivARB" );
-		qglGetQueryObjectuivARB = (PFNGLGETQUERYOBJECTUIVARBPROC)GLimp_ExtensionPointer( "glGetQueryObjectuivARB" );
 	}
 
 	// GL_ARB_timer_query
 	glConfig.timerQueryAvailable = R_CheckExtension( "GL_ARB_timer_query" ) || R_CheckExtension( "GL_EXT_timer_query" );
 	if ( glConfig.timerQueryAvailable ) {
-		qglGetQueryObjectui64vEXT = (PFNGLGETQUERYOBJECTUI64VEXTPROC)GLimp_ExtensionPointer( "glGetQueryObjectui64vARB" );
 		if ( qglGetQueryObjectui64vEXT == NULL ) {
-			qglGetQueryObjectui64vEXT = (PFNGLGETQUERYOBJECTUI64VEXTPROC)GLimp_ExtensionPointer( "glGetQueryObjectui64vEXT" );
 		}
 	}
 
 	// GL_ARB_debug_output
 	glConfig.debugOutputAvailable = R_CheckExtension( "GL_ARB_debug_output" );
 	if ( glConfig.debugOutputAvailable ) {
-		qglDebugMessageControlARB   = (PFNGLDEBUGMESSAGECONTROLARBPROC)GLimp_ExtensionPointer( "glDebugMessageControlARB" );
-		qglDebugMessageInsertARB    = (PFNGLDEBUGMESSAGEINSERTARBPROC)GLimp_ExtensionPointer( "glDebugMessageInsertARB" );
-		qglDebugMessageCallbackARB  = (PFNGLDEBUGMESSAGECALLBACKARBPROC)GLimp_ExtensionPointer( "glDebugMessageCallbackARB" );
-		qglGetDebugMessageLogARB    = (PFNGLGETDEBUGMESSAGELOGARBPROC)GLimp_ExtensionPointer( "glGetDebugMessageLogARB" );
 
 		if ( r_debugContext.GetInteger() >= 1 ) {
 			qglDebugMessageCallbackARB( DebugCallback, NULL );
@@ -598,10 +405,6 @@ static void R_CheckPortableExtensions() {
 	// GL_ARB_draw_elements_base_vertex
 	if ( !glConfig.drawElementsBaseVertexAvailable ) {
 		idLib::Error( "GL_ARB_draw_elements_base_vertex not available" );
-	}
-	// GL_ARB_vertex_program / GL_ARB_fragment_program
-	if ( !glConfig.fragmentProgramAvailable ) {
-		idLib::Error( "GL_ARB_fragment_program not available" );
 	}
 	// GLSL
 	if ( !glConfig.glslAvailable ) {
@@ -697,7 +500,7 @@ void R_SetNewMode( const bool fullInit ) {
 				parms.height = r_customHeight.GetInteger();
 				parms.displayHz = r_displayRefresh.GetInteger();
 			} else {
-				if ( r_vidMode.GetInteger() > modeList.Num() ) {
+				if ( r_vidMode.GetInteger() >= modeList.Num() ) {
 					idLib::Printf( "r_vidMode reset from %i to 0.\n", r_vidMode.GetInteger() );
 					r_vidMode.SetInteger( 0 );
 				}
@@ -718,6 +521,10 @@ void R_SetNewMode( const bool fullInit ) {
 		if ( fullInit ) {
 			// create the context as well as setting up the window
 			if ( GLimp_Init( parms ) ) {
+				if ( parms.stereo && !glConfig.stereoPixelFormatAvailable ) {
+					idLib::Warning( "Quad-buffer stereo requested but the OpenGL context has no stereo buffers; disabling stereo." );
+					stereoRender_enable.SetInteger( STEREO3D_OFF );
+				}
 				// it worked
 				break;
 			}
@@ -789,7 +596,6 @@ void R_InitOpenGL() {
 
 	if ( glConfig.extensions_string == NULL ) {
 		// As of OpenGL 3.2, glGetStringi is required to obtain the available extensions
-		qglGetStringi = (PFNGLGETSTRINGIPROC)GLimp_ExtensionPointer( "glGetStringi" );
 
 		// Build the extensions string
 		GLint numExtensions;
@@ -840,25 +646,7 @@ void R_InitOpenGL() {
 	// Reset our gamma
 	R_SetColorMappings();
 
-	static bool glCheck = false;
-	if ( !glCheck && win32.osversion.dwMajorVersion == 6 ) {
-		glCheck = true;
-		if ( !idStr::Icmp( glConfig.vendor_string, "Microsoft" ) && idStr::FindText( glConfig.renderer_string, "OpenGL-D3D" ) != -1 ) {
-			if ( cvarSystem->GetCVarBool( "r_fullscreen" ) ) {
-				cmdSystem->BufferCommandText( CMD_EXEC_NOW, "vid_restart partial windowed\n" );
-				Sys_GrabMouseCursor( false );
-			}
-			int ret = MessageBox( NULL, "Please install OpenGL drivers from your graphics hardware vendor to run " GAME_NAME ".\nYour OpenGL functionality is limited.",
-				"Insufficient OpenGL capabilities", MB_OKCANCEL | MB_ICONWARNING | MB_TASKMODAL );
-			if ( ret == IDCANCEL ) {
-				cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "quit\n" );
-				cmdSystem->ExecuteCommandBuffer();
-			}
-			if ( cvarSystem->GetCVarBool( "r_fullscreen" ) ) {
-				cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "vid_restart\n" );
-			}
-		}
-	}
+
 }
 
 /*
@@ -1652,11 +1440,8 @@ void GfxInfo_f( const idCmdArgs &args ) {
 
 	common->Printf( "-------\n" );
 
-	// WGL_EXT_swap_interval
-	typedef BOOL (WINAPI * PFNWGLSWAPINTERVALEXTPROC) (int interval);
-	extern	PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT;
-
-	if ( r_swapInterval.GetInteger() && wglSwapIntervalEXT != NULL ) {
+	// swap interval is applied through SDL when the window is created (see sdl_glimp.cpp)
+	if ( r_swapInterval.GetInteger() ) {
 		common->Printf( "Forcing swapInterval %i\n", r_swapInterval.GetInteger() );
 	} else {
 		common->Printf( "swapInterval not forced\n" );
@@ -1706,83 +1491,17 @@ void R_VidRestart_f( const idCmdArgs &args ) {
 		return;
 	}
 
-	// set the mode without re-initializing the context
+	// Rebuild the window / scaling FBO without destroying the GL context and
+	// invalidating all renderer VBOs.
 	R_SetNewMode( false );
 
-#if 0
-	bool full = true;
-	bool forceWindow = false;
-	for ( int i = 1 ; i < args.Argc() ; i++ ) {
-		if ( idStr::Icmp( args.Argv( i ), "partial" ) == 0 ) {
-			full = false;
-			continue;
-		}
-		if ( idStr::Icmp( args.Argv( i ), "windowed" ) == 0 ) {
-			forceWindow = true;
-			continue;
-		}
-	}
-
-	// this could take a while, so give them the cursor back ASAP
-	Sys_GrabMouseCursor( false );
-
-	// dump ambient caches
-	renderModelManager->FreeModelVertexCaches();
-
-	// free any current world interaction surfaces and vertex caches
-	R_FreeDerivedData();
-
-	// make sure the defered frees are actually freed
-	R_ToggleSmpFrame();
-	R_ToggleSmpFrame();
-
-	// free the vertex caches so they will be regenerated again
-	vertexCache.PurgeAll();
-
-	// sound and input are tied to the window we are about to destroy
-
-	if ( full ) {
-		// free all of our texture numbers
-		Sys_ShutdownInput();
-		globalImages->PurgeAllImages();
-		// free the context and close the window
-		GLimp_Shutdown();
-		r_initialized = false;
-
-		// create the new context and vertex cache
-		bool latch = cvarSystem->GetCVarBool( "r_fullscreen" );
-		if ( forceWindow ) {
-			cvarSystem->SetCVarBool( "r_fullscreen", false );
-		}
-		R_InitOpenGL();
-		cvarSystem->SetCVarBool( "r_fullscreen", latch );
-
-		// regenerate all images
-		globalImages->ReloadImages( true );
-	} else {
-		glimpParms_t parms;
-		parms.width = glConfig.nativeScreenWidth;
-		parms.height = glConfig.nativeScreenHeight;
-		parms.fullScreen = ( forceWindow ) ? false : r_fullscreen.GetInteger();
-		parms.displayHz = r_displayRefresh.GetInteger();
-		parms.multiSamples = r_multiSamples.GetInteger();
-		parms.stereo = false;
-		GLimp_SetScreenParms( parms );
-	}
-
-
-
-	// make sure the regeneration doesn't use anything no longer valid
 	tr.viewCount++;
 	tr.viewDef = NULL;
 
-	// check for problems
 	int err = qglGetError();
 	if ( err != GL_NO_ERROR ) {
 		common->Printf( "glGetError() = 0x%x\n", err );
 	}
-#endif
-
 }
 
 /*

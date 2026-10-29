@@ -35,6 +35,18 @@ If you have questions concerning this license or the applicable additional terms
 #define true 1
 typedef int qboolean;
 
+// the Windows headers define these, provide them for the other platforms
+#ifndef _WIN32
+typedef unsigned char boolean;
+typedef int BOOL;
+#ifndef TRUE
+#define TRUE 1
+#endif
+#ifndef FALSE
+#define FALSE 0
+#endif
+#endif
+
 
 
 typedef float FLOAT;

@@ -414,35 +414,21 @@ idFileSystemLocal::OpenOSFile
 ================
 */
 idFileHandle idFileSystemLocal::OpenOSFile( const char *fileName, fsMode_t mode ) {
-	idFileHandle fp;
-
-
-	DWORD dwAccess = 0;
-	DWORD dwShare = 0;
-	DWORD dwCreate = 0;
-	DWORD dwFlags = 0;
+	idFileHandle fp = NULL;
 
 	if ( mode == FS_WRITE ) {
-		dwAccess = GENERIC_READ | GENERIC_WRITE;
-		dwShare = FILE_SHARE_READ;
-		dwCreate = CREATE_ALWAYS;
-		dwFlags = FILE_ATTRIBUTE_NORMAL;
+		// truncate (or create) the file
+		fp = SDL_IOFromFile( fileName, "wb" );
 	} else if ( mode == FS_READ ) {
-		dwAccess = GENERIC_READ;
-		dwShare = FILE_SHARE_READ;
-		dwCreate = OPEN_EXISTING;
-		dwFlags = FILE_ATTRIBUTE_NORMAL;
+		fp = SDL_IOFromFile( fileName, "rb" );
 	} else if ( mode == FS_APPEND ) {
-		dwAccess = GENERIC_READ | GENERIC_WRITE;
-		dwShare = FILE_SHARE_READ;
-		dwCreate = OPEN_ALWAYS;
-		dwFlags = FILE_ATTRIBUTE_NORMAL;
-					}
+		// open an existing file without truncating it, create it if it's missing
+		fp = SDL_IOFromFile( fileName, "r+b" );
+		if ( fp == NULL ) {
+			fp = SDL_IOFromFile( fileName, "w+b" );
+		}
+	}
 
-	fp = CreateFile( fileName, dwAccess, dwShare, NULL, dwCreate, dwFlags, NULL );
-	if ( fp == INVALID_HANDLE_VALUE ) {
-		return NULL;
-				}
 	return fp;
 }
 
@@ -452,7 +438,7 @@ idFileSystemLocal::CloseOSFile
 ================
 */
 void idFileSystemLocal::CloseOSFile( idFileHandle o ) {
-	::CloseHandle( o );
+	SDL_CloseIO( o );
 }
 
 /*
@@ -461,7 +447,7 @@ idFileSystemLocal::DirectFileLength
 ================
 */
 int idFileSystemLocal::DirectFileLength( idFileHandle o ) {
-	return GetFileSize( o, NULL );
+	return ( int )SDL_GetIOSize( o );
 }
 
 /*
@@ -484,13 +470,13 @@ void idFileSystemLocal::CreateOSPath( const char *OSPath ) {
 	}
 
 	idStrStatic< MAX_OSPATH > path( OSPath );
-	path.SlashesToBackSlashes();
 	for( ofs = &path[ 1 ]; *ofs ; ofs++ ) {
-		if ( *ofs == PATHSEPARATOR_CHAR ) {	
+		if ( *ofs == '/' || *ofs == '\\' ) {
+			const char separator = *ofs;
 			// create the directory
 			*ofs = 0;
 			Sys_Mkdir( path );
-			*ofs = PATHSEPARATOR_CHAR;
+			*ofs = separator;
 		}
 	}
 }
@@ -1550,11 +1536,11 @@ void idFileSystemLocal::RemoveFile( const char *relativePath ) {
 
 	if ( fs_basepath.GetString()[0] ) {
 		OSPath = BuildOSPath( fs_basepath.GetString(), gameFolder, relativePath );
-		::DeleteFile( OSPath );
+		SDL_RemovePath( OSPath );
 	}
 
 	OSPath = BuildOSPath( fs_savepath.GetString(), gameFolder, relativePath );
-	::DeleteFile( OSPath );
+	SDL_RemovePath( OSPath );
 }
 
 /*
@@ -1754,14 +1740,11 @@ bool idFileSystemLocal::RenameFile( const char * relativePath, const char * newN
 	idStr oldOSPath = BuildOSPath( path, gameFolder, relativePath );
 	idStr newOSPath = BuildOSPath( path, gameFolder, newName );
 
-	// this gives atomic-delete-on-rename, like POSIX rename()
-	// There is a MoveFileTransacted() on vista and above, not sure if that means there
-	// is a race condition inside MoveFileEx...
-	const bool success = ( MoveFileEx( oldOSPath.c_str(), newOSPath.c_str(), MOVEFILE_REPLACE_EXISTING ) != 0 );
+	// SDL_RenamePath replaces the destination on POSIX systems
+	const bool success = SDL_RenamePath( oldOSPath.c_str(), newOSPath.c_str() );
 
 	if ( !success ) {
-		const int err = GetLastError();
-		idLib::Warning( "RenameFile( %s, %s ) error %i", newOSPath.c_str(), oldOSPath.c_str(), err );
+		idLib::Warning( "RenameFile( %s, %s ) error %s", newOSPath.c_str(), oldOSPath.c_str(), SDL_GetError() );
 	}
 	return success;
 }

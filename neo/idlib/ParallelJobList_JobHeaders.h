@@ -44,10 +44,12 @@ If you have questions concerning this license or the applicable additional terms
 #include <math.h>
 #include <string.h>
 
+#ifdef _MSC_VER
 #include <basetsd.h>				// for UINT_PTR
 #include <intrin.h>
 #pragma warning( disable : 4100 )	// unreferenced formal parameter
 #pragma warning( disable : 4127 )	// conditional expression is constant
+#endif
 
 
 

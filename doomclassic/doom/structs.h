@@ -348,7 +348,11 @@ typedef struct
     int			masked;	
     short		width;
     short		height;
-    void		**columndirectory;	// OBSOLETE
+    // RB: this struct mirrors the on-disk texture header, where this obsolete
+    // field is 4 bytes.  It used to be a pointer, which is 8 bytes here and
+    // shifted patchcount/patches onto the wrong offsets.
+    int			columndirectory;	// OBSOLETE
+    // RB end
     short		patchcount;
     mappatch_t	patches[1];
 } maptexture_t;

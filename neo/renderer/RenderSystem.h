@@ -128,6 +128,7 @@ struct glconfig_t {
 	stereo3DMode_t		stereo3Dmode;
 	int					nativeScreenWidth; // this is the native screen width resolution of the renderer
 	int					nativeScreenHeight; // this is the native screen height resolution of the renderer
+	bool				logicalScaling; // rendering to an offscreen framebuffer that is scaled to the window
 
 	int					displayFrequency;
 

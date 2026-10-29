@@ -286,7 +286,7 @@ idRenderProgManager::LoadShader
 */
 GLuint idRenderProgManager::LoadShader( GLenum target, const char * name, const char * startToken ) {
 
-	idStr fullPath = "renderprogs\\gl\\";
+	idStr fullPath = "renderprogs/gl/";
 	fullPath += name;
 
 	common->Printf( "%s", fullPath.c_str() );

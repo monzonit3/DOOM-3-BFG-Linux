@@ -585,12 +585,7 @@ void idCommonLocal::Frame() {
 		// build a new usercmd
 		int deviceNum = session->GetSignInManager().GetMasterInputDevice();
 		usercmdGen->BuildCurrentUsercmd( deviceNum );
-		if ( deviceNum == -1 ) {
-			for ( int i = 0; i < MAX_INPUT_DEVICES; i++ ) {
-				Sys_PollJoystickInputEvents( i );
-				Sys_EndJoystickInputEvents();
-			}
-		}
+
 		if ( pauseGame ) {
 			usercmdGen->Clear();
 		}

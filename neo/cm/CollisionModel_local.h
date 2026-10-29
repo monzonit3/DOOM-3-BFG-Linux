@@ -81,16 +81,19 @@ Collision model
 typedef struct cm_vertex_s {
 	idVec3					p;					// vertex point
 	int						checkcount;			// for multi-check avoidance
-	unsigned long			side;				// each bit tells at which side this vertex passes one of the trace model edges
-	unsigned long			sideSet;			// each bit tells if sidedness for the trace model edge has been calculated yet
+	// unsigned int instead of unsigned long so the struct matches the binary collision model format
+	// on LP64 systems as well, the models shipped with the game were written by a 32-bit build
+	unsigned int			side;				// each bit tells at which side this vertex passes one of the trace model edges
+	unsigned int			sideSet;			// each bit tells if sidedness for the trace model edge has been calculated yet
 } cm_vertex_t;
 
 typedef struct cm_edge_s {
 	int						checkcount;			// for multi-check avoidance
 	unsigned short			internal;			// a trace model can never collide with internal edges
 	unsigned short			numUsers;			// number of polygons using this edge
-	unsigned long			side;				// each bit tells at which side of this edge one of the trace model vertices passes
-	unsigned long			sideSet;			// each bit tells if sidedness for the trace model vertex has been calculated yet
+	// unsigned int instead of unsigned long so the struct matches the binary collision model format
+	unsigned int			side;				// each bit tells at which side of this edge one of the trace model vertices passes
+	unsigned int			sideSet;			// each bit tells if sidedness for the trace model vertex has been calculated yet
 	int						vertexNum[2];		// start and end point of edge
 	idVec3					normal;				// edge normal
 } cm_edge_t;

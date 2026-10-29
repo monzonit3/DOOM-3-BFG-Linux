@@ -349,21 +349,12 @@ idKeyInput::LocalizedKeyName
 */
 const char * idKeyInput::LocalizedKeyName( keyNum_t keynum ) {
 	if ( keynum < K_JOY1 ) {
-		// On the PC, we want to turn the scan code in to a key label that matches the currently selected keyboard layout
-		unsigned char keystate[256] = { 0 };
-		WCHAR temp[5];
-
-		int scancode = (int)keynum;
-		int vkey = MapVirtualKey( keynum, MAPVK_VSC_TO_VK_EX );
-		int result = -1;
-		while ( result < 0 ) {
-			result = ToUnicode( vkey, scancode, keystate, temp, sizeof( temp ) / sizeof( temp[0] ), 0 );
-		}
-		if ( result > 0 && temp[0] > ' ' && iswprint( temp[0] ) ) {
+		// ask SDL for the label the currently selected keyboard layout uses for this key
+		const char * localized = Sys_GetKeyName( keynum );
+		if ( localized != NULL && localized[0] != '\0' ) {
 			static idStr bindStr;
-			bindStr.Empty();
-			bindStr.AppendUTF8Char( temp[0] );
-			return bindStr;
+			bindStr = localized;
+			return bindStr.c_str();
 		}
 	}
 
